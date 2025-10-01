@@ -1,0 +1,145 @@
+import React, { useState } from "react";
+import {
+    View,
+    Text,
+    TextInput,
+    Pressable,
+    StyleSheet,
+    TouchableOpacity,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+export default function FindAccountScreen({ navigation }: any) {
+    const [tab, setTab] = useState<"id" | "password">("id");
+
+    // 상태
+    const [name, setName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [email, setEmail] = useState("");
+    const [userId, setUserId] = useState("");
+
+    const handleFindId = () => {
+        const foundId = "testUser01"; // API 응답이라고 가정
+        navigation.navigate("FindIdResult", { userId: foundId });
+    };
+
+    const handleFindPassword = () => {
+        navigation.navigate("FindPasswordResult", { email });
+    };
+
+    return (
+        <View style={s.container}>
+            {/* 뒤로가기 */}
+            <TouchableOpacity style={s.backButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={28} color="black" />
+            </TouchableOpacity>
+
+            {/* 제목 */}
+            <Text style={s.title}>아이디/비밀번호 찾기</Text>
+
+            {/* 탭 버튼 */}
+            <View style={s.tabRow}>
+                <Pressable
+                    style={[s.tabButton, tab === "id" && s.tabActive]}
+                    onPress={() => setTab("id")}
+                >
+                    <Text style={[s.tabText, tab === "id" && s.tabTextActive]}>아이디 찾기</Text>
+                </Pressable>
+                <Pressable
+                    style={[s.tabButton, tab === "password" && s.tabActive]}
+                    onPress={() => setTab("password")}
+                >
+                    <Text style={[s.tabText, tab === "password" && s.tabTextActive]}>
+                        비밀번호 찾기
+                    </Text>
+                </Pressable>
+            </View>
+
+            {/* 아이디 찾기 폼 */}
+            {tab === "id" && (
+                <View>
+                    <TextInput
+                        style={s.input}
+                        placeholder="이름"
+                        value={name}
+                        onChangeText={setName}
+                    />
+                    <TextInput
+                        style={s.input}
+                        placeholder="전화번호"
+                        value={phone}
+                        onChangeText={setPhone}
+                        keyboardType="phone-pad"
+                    />
+                    <TextInput
+                        style={s.input}
+                        placeholder="이메일"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                    />
+
+                    <Pressable style={s.button} onPress={handleFindId}>
+                        <Text style={s.buttonText}>아이디 찾기</Text>
+                    </Pressable>
+                </View>
+            )}
+
+            {/* 비밀번호 찾기 폼 */}
+            {tab === "password" && (
+                <View>
+                    <TextInput
+                        style={s.input}
+                        placeholder="아이디"
+                        value={userId}
+                        onChangeText={setUserId}
+                    />
+                    <TextInput
+                        style={s.input}
+                        placeholder="이메일"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                    />
+
+                    <Pressable style={s.button} onPress={handleFindPassword}>
+                        <Text style={s.buttonText}>비밀번호 재설정</Text>
+                    </Pressable>
+                </View>
+            )}
+        </View>
+    );
+}
+
+const s = StyleSheet.create({
+    container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+    backButton: { marginTop: 20, marginBottom: 10 },
+    title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
+    tabRow: { flexDirection: "row", marginBottom: 20 },
+    tabButton: {
+        flex: 1,
+        padding: 12,
+        alignItems: "center",
+        borderBottomWidth: 2,
+        borderBottomColor: "#ddd",
+    },
+    tabActive: { borderBottomColor: "#111" },
+    tabText: { fontSize: 16, color: "#666" },
+    tabTextActive: { color: "#111", fontWeight: "bold" },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 10,
+        padding: 14,
+        marginBottom: 12,
+        backgroundColor: "#f9f9f9",
+    },
+    button: {
+        backgroundColor: "#111",
+        padding: 16,
+        borderRadius: 10,
+        alignItems: "center",
+        marginTop: 10,
+    },
+    buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+});

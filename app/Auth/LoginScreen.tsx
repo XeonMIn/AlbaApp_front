@@ -1,19 +1,30 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
 
 export default function LoginScreen({ navigation }: any) {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
 
     const handleLogin = () => {
-        alert(`로그인 시도\n아이디: ${userId}`);
-        // 로그인 성공 시 -> navigation.navigate("Home");
+        if (!userId || !password) {
+            Alert.alert("로그인 실패", "아이디와 비밀번호를 입력해주세요.");
+            return;
+        }
+
+        // ✅ 테스트 계정 분기
+        if (userId === "asd" && password === "123") {
+            navigation.replace("EmployeeHome"); // 알바생 홈으로 이동
+        } else if (userId === "qwe" && password === "123") {
+            navigation.replace("OwnerHome"); // 사장님 홈으로 이동
+        } else {
+            Alert.alert("로그인 실패", "아이디 또는 비밀번호가 올바르지 않습니다.");
+        }
     };
 
     return (
         <View style={s.container}>
             {/* 앱 제목 */}
-            <Text style={s.title}>스마트 알바 매니저 앱</Text>
+            <Text style={s.title}>알바 매니저 앱</Text>
 
             {/* 입력 필드 */}
             <TextInput
@@ -44,7 +55,6 @@ export default function LoginScreen({ navigation }: any) {
                     <Text style={s.linkText}>아이디/비밀번호 찾기</Text>
                 </Pressable>
             </View>
-
         </View>
     );
 }

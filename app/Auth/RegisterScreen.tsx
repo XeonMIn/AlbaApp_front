@@ -42,14 +42,15 @@ export default function RegisterScreen() {
         try {
             setLoading(true);
 
-            const response = await axios.post("http://10.0.2.2:8080/api/register", {
-                userId,
-                password,
-                email,
-                name,
+            const response = await axios.post("http://10.0.2.2:8081/member/signup", {
+                userid: userId,                // ✅ 백엔드 DTO 필드 이름과 통일
+                password: password,
+                name: name,
+                email: email,
                 phone: phoneNumber,
-                userType,
-                businessLicense: userType === "owner" ? businessLicense : null,
+                role: userType === "owner" ? "OWNER" : "EMPLOYEE",  // ✅ role 필드 채우기
+                birthdate: "2000-01-01",       // ✅ 테스트용으로 임시 값 (나중에 입력 필드 추가 가능)
+                businessLicense: userType === "owner" ? businessLicense : null
             });
 
             const data = response.data;

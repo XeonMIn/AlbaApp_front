@@ -14,7 +14,7 @@ export default function LoginScreen({ navigation }: any) {
 
         try {
             setLoading(true);
-            const response = await axios.post("http://10.0.2.2:8080/api/login", {
+            const response = await axios.post("http://10.0.2.2:8081/member/login", {
                 userId,
                 password,
             });

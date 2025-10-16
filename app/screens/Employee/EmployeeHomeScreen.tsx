@@ -1,22 +1,22 @@
+// app/screens/Employee/EmployeeHomeScreen.tsx
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EmployeeHomeScreen({ navigation }: any) {
     return (
-        <View style={s.container}>
+        <SafeAreaView style={s.container}>
             {/* 상단 헤더 */}
             <View style={s.header}>
-                <View>
-                    <Text style={s.welcome}>안녕하세요 👋</Text>
-                    <Text style={s.name}>선민님</Text>
-                </View>
+                <Text style={s.name}>선민님</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Notice")}>
-                    <Ionicons name="notifications-outline" size={28} color="#111" />
+                    <Ionicons name="notifications-outline" size={26} color="#111" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            {/* 본문 스크롤 영역 */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* 급여 카드 */}
                 <View style={s.salaryCard}>
                     <Text style={s.salaryLabel}>이번 달 예상 급여</Text>
@@ -71,27 +71,7 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-
-            {/* 하단 네비게이션 */}
-            <View style={s.bottomNav}>
-                <TouchableOpacity style={s.navItem} onPress={() => navigation.navigate("EmployeeHome")}>
-                    <Ionicons name="home" size={24} color="#007AFF" />
-                    <Text style={s.navActive}>홈</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.navItem} onPress={() => navigation.navigate("Schedule")}>
-                    <Ionicons name="calendar-outline" size={24} color="#555" />
-                    <Text style={s.navText}>일정</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.navItem} onPress={() => navigation.navigate("Chat")}>
-                    <Ionicons name="chatbubble-outline" size={24} color="#555" />
-                    <Text style={s.navText}>채팅</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.navItem} onPress={() => navigation.navigate("Profile")}>
-                    <Ionicons name="person-outline" size={24} color="#555" />
-                    <Text style={s.navText}>내 정보</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -102,12 +82,11 @@ const s = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingVertical: 14,
         backgroundColor: "#fff",
         elevation: 3,
     },
-    welcome: { color: "#666", fontSize: 14 },
-    name: { fontSize: 20, fontWeight: "bold" },
+    name: { fontSize: 22, fontWeight: "bold", color: "#111" },
     salaryCard: {
         margin: 16,
         borderRadius: 18,

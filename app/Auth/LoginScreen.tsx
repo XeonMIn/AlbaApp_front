@@ -12,6 +12,17 @@ export default function LoginScreen({ navigation }: any) {
             return Alert.alert("입력 오류", "아이디와 비밀번호를 입력해주세요.");
         }
 
+        // 임시 로그인 (백엔드 연결 전 테스트용)
+        if (userId === "eee" && password === "123") {
+            Alert.alert("로그인 성공", "알바생 계정으로 로그인되었습니다.");
+            navigation.replace("EmployeeHome");
+            return;
+        } else if (userId === "ooo" && password === "123") {
+            Alert.alert("로그인 성공", "사장님 계정으로 로그인되었습니다.");
+            navigation.replace("OwnerHome");
+            return;
+        }
+
         try {
             setLoading(true);
             const response = await axios.post("http://10.0.2.2:8081/member/login", {

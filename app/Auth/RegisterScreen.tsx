@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
     View,
     Text,
@@ -7,42 +7,65 @@ import {
     TouchableOpacity,
     Alert,
     ScrollView,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigators/RootNavigator';
+} from "react-native";
+import axios from "axios";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigators/RootNavigator";
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
     RootStackParamList,
-    'Register'
+    "Register"
 >;
 
 export default function RegisterScreen() {
     const navigation = useNavigation<RegisterScreenNavigationProp>();
 
-    const [userId, setUserId] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [email, setEmail] = useState('');
-    const [name, setName] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [businessLicense, setBusinessLicense] = useState(''); // 사장님 전용
-    const [userType, setUserType] = useState<'owner' | 'employee'>('employee');
+    const [userId, setUserId] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [email, setEmail] = useState("");
+    const [name, setName] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [businessLicense, setBusinessLicense] = useState(""); // 사장님 전용
+    const [userType, setUserType] = useState<"owner" | "employee">("employee");
+    const [loading, setLoading] = useState(false);
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         if (!userId || !password || !confirmPassword || !email || !name || !phoneNumber) {
-            return Alert.alert('입력 오류', '필수 항목을 모두 입력해주세요.');
+            return Alert.alert("입력 오류", "필수 항목을 모두 입력해주세요.");
         }
         if (password !== confirmPassword) {
-            return Alert.alert('비밀번호 오류', '비밀번호가 일치하지 않습니다.');
+            return Alert.alert("비밀번호 오류", "비밀번호가 일치하지 않습니다.");
         }
 
-        Alert.alert(
-            '회원가입 성공',
-            `아이디: ${userId}\n이름: ${name}\n직책: ${userType === 'owner' ? '사장님' : '알바생'}`
-        );
+        try {
+            setLoading(true);
 
-        navigation.replace('Login');
+            const response = await axios.post("http://10.0.2.2:8080/api/register", {
+                userId,
+                password,
+                email,
+                name,
+                phone: phoneNumber,
+                userType,
+                businessLicense: userType === "owner" ? businessLicense : null,
+            });
+
+            const data = response.data;
+
+            if (data.success) {
+                Alert.alert("회원가입 완료", data.message || "회원가입이 완료되었습니다.");
+                navigation.replace("Login");
+            } else {
+                Alert.alert("회원가입 실패", data.message || "이미 존재하는 아이디입니다.");
+            }
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert("서버 오류", "회원가입 요청 중 문제가 발생했습니다.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -52,19 +75,19 @@ export default function RegisterScreen() {
             {/* 직책 선택 */}
             <View style={s.toggleContainer}>
                 <TouchableOpacity
-                    style={[s.toggleButton, userType === 'employee' && s.toggleActive]}
-                    onPress={() => setUserType('employee')}
+                    style={[s.toggleButton, userType === "employee" && s.toggleActive]}
+                    onPress={() => setUserType("employee")}
                 >
-                    <Text style={[s.toggleText, userType === 'employee' && s.toggleTextActive]}>
+                    <Text style={[s.toggleText, userType === "employee" && s.toggleTextActive]}>
                         알바생
                     </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[s.toggleButton, userType === 'owner' && s.toggleActive]}
-                    onPress={() => setUserType('owner')}
+                    style={[s.toggleButton, userType === "owner" && s.toggleActive]}
+                    onPress={() => setUserType("owner")}
                 >
-                    <Text style={[s.toggleText, userType === 'owner' && s.toggleTextActive]}>
+                    <Text style={[s.toggleText, userType === "owner" && s.toggleTextActive]}>
                         사장님
                     </Text>
                 </TouchableOpacity>
@@ -119,7 +142,7 @@ export default function RegisterScreen() {
             />
 
             {/* 사장님 전용 입력 필드 */}
-            {userType === 'owner' && (
+            {userType === "owner" && (
                 <TextInput
                     placeholder="사업자 등록번호"
                     style={s.input}
@@ -129,11 +152,15 @@ export default function RegisterScreen() {
             )}
 
             {/* 회원가입 버튼 */}
-            <TouchableOpacity style={s.button} onPress={handleRegister}>
-                <Text style={s.buttonText}>회원가입</Text>
+            <TouchableOpacity
+                style={[s.button, loading && { opacity: 0.6 }]}
+                onPress={handleRegister}
+                disabled={loading}
+            >
+                <Text style={s.buttonText}>{loading ? "등록 중..." : "회원가입"}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                 <Text style={s.link}>로그인으로 돌아가기</Text>
             </TouchableOpacity>
         </ScrollView>
@@ -143,62 +170,62 @@ export default function RegisterScreen() {
 const s = StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#fff',
+        backgroundColor: "#fff",
         flexGrow: 1,
-        justifyContent: 'center',
+        justifyContent: "center",
     },
     title: {
         fontSize: 28,
-        fontWeight: 'bold',
-        textAlign: 'center',
+        fontWeight: "bold",
+        textAlign: "center",
         marginBottom: 24,
     },
     input: {
         height: 50,
-        borderColor: '#ccc',
+        borderColor: "#ccc",
         borderWidth: 1,
         borderRadius: 8,
         marginBottom: 16,
         paddingHorizontal: 10,
     },
     toggleContainer: {
-        flexDirection: 'row',
+        flexDirection: "row",
         marginBottom: 20,
     },
     toggleButton: {
         flex: 1,
         padding: 12,
         borderWidth: 1,
-        borderColor: '#111',
+        borderColor: "#111",
         borderRadius: 8,
         marginRight: 8,
-        alignItems: 'center',
+        alignItems: "center",
     },
     toggleActive: {
-        backgroundColor: '#111',
+        backgroundColor: "#111",
     },
     toggleText: {
-        color: '#111',
+        color: "#111",
     },
     toggleTextActive: {
-        color: '#fff',
-        fontWeight: 'bold',
+        color: "#fff",
+        fontWeight: "bold",
     },
     button: {
-        backgroundColor: '#111',
+        backgroundColor: "#111",
         paddingVertical: 14,
         borderRadius: 8,
-        alignItems: 'center',
+        alignItems: "center",
         marginTop: 8,
     },
     buttonText: {
-        color: 'white',
+        color: "white",
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: "bold",
     },
     link: {
         marginTop: 16,
-        textAlign: 'center',
-        color: '#555',
+        textAlign: "center",
+        color: "#555",
     },
 });

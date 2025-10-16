@@ -1,32 +1,56 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
+import axios from "axios";
 
 export default function LoginScreen({ navigation }: any) {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!userId || !password) {
-            Alert.alert("로그인 실패", "아이디와 비밀번호를 입력해주세요.");
-            return;
+            return Alert.alert("입력 오류", "아이디와 비밀번호를 입력해주세요.");
         }
 
-        // ✅ 테스트 계정 분기
-        if (userId === "asd" && password === "123") {
-            navigation.replace("EmployeeHome"); // 알바생 홈으로 이동
-        } else if (userId === "qwe" && password === "123") {
-            navigation.replace("OwnerHome"); // 사장님 홈으로 이동
-        } else {
-            Alert.alert("로그인 실패", "아이디 또는 비밀번호가 올바르지 않습니다.");
+        try {
+            setLoading(true);
+            const response = await axios.post("http://10.0.2.2:8080/api/login", {
+                userId,
+                password,
+            });
+
+            const data = response.data;
+
+            if (data.success) {
+                Alert.alert("로그인 성공", `${data.userName}님 환영합니다!`);
+
+                // JWT 토큰 저장 (선택사항)
+                // import * as SecureStore from "expo-secure-store";
+                // await SecureStore.setItemAsync("jwt", data.token);
+
+                // 사용자 유형에 따라 분기 이동
+                if (data.userType === "employee") {
+                    navigation.replace("EmployeeHome");
+                } else if (data.userType === "owner") {
+                    navigation.replace("OwnerHome");
+                } else {
+                    Alert.alert("알 수 없는 사용자 유형입니다.");
+                }
+            } else {
+                Alert.alert("로그인 실패", "아이디 또는 비밀번호가 올바르지 않습니다.");
+            }
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert("서버 오류", "로그인 요청 중 문제가 발생했습니다.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <View style={s.container}>
-            {/* 앱 제목 */}
             <Text style={s.title}>알바 매니저 앱</Text>
 
-            {/* 입력 필드 */}
             <TextInput
                 style={s.input}
                 placeholder="아이디"
@@ -41,12 +65,12 @@ export default function LoginScreen({ navigation }: any) {
                 onChangeText={setPassword}
             />
 
-            {/* 로그인 버튼 */}
-            <Pressable style={s.loginButton} onPress={handleLogin}>
-                <Text style={s.loginButtonText}>로그인</Text>
+            <Pressable style={[s.loginButton, loading && { opacity: 0.5 }]} onPress={handleLogin}>
+                <Text style={s.loginButtonText}>
+                    {loading ? "로그인 중..." : "로그인"}
+                </Text>
             </Pressable>
 
-            {/* 회원가입 / 아이디 찾기 / 비밀번호 찾기 */}
             <View style={s.linkRow}>
                 <Pressable onPress={() => navigation.navigate("Register")}>
                     <Text style={s.linkText}>회원가입</Text>
@@ -78,10 +102,6 @@ const s = StyleSheet.create({
         marginVertical: 10,
     },
     loginButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-    linkRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginTop: 10,
-    },
+    linkRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
     linkText: { color: "#6c757d", fontSize: 14 },
 });

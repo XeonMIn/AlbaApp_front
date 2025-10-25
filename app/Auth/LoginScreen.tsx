@@ -1,24 +1,45 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
 import axios from "axios";
+import { useDispatch } from "react-redux";
+import { setUser } from "@/store/userSlice"; // 경로는 프로젝트 구조에 맞게 조정
 
 export default function LoginScreen({ navigation }: any) {
     const [userId, setUserId] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const dispatch = useDispatch();
 
     const handleLogin = async () => {
         if (!userId || !password) {
             return Alert.alert("입력 오류", "아이디와 비밀번호를 입력해주세요.");
         }
 
-        // 임시 로그인 (백엔드 연결 전 테스트용)
+        // 임시 로그인 (백엔드 연결 전 Redux 테스트용)
         if (userId === "eee" && password === "123") {
             Alert.alert("로그인 성공", "알바생 계정으로 로그인되었습니다.");
+
+            dispatch(
+                setUser({
+                    userId: "eee",
+                    name: "알바생 테스트 계정",
+                    role: "EMPLOYEE",
+                })
+            );
+
             navigation.replace("EmployeeHome");
             return;
         } else if (userId === "ooo" && password === "123") {
             Alert.alert("로그인 성공", "사장님 계정으로 로그인되었습니다.");
+
+            dispatch(
+                setUser({
+                    userId: "ooo",
+                    name: "사장님 테스트 계정",
+                    role: "OWNER",
+                })
+            );
+
             navigation.replace("OwnerHome");
             return;
         }
@@ -35,11 +56,14 @@ export default function LoginScreen({ navigation }: any) {
             if (data.success) {
                 Alert.alert("로그인 성공", `${data.userName}님 환영합니다!`);
 
-                // JWT 토큰 저장 (선택사항)
-                // import * as SecureStore from "expo-secure-store";
-                // await SecureStore.setItemAsync("jwt", data.token);
+                dispatch(
+                    setUser({
+                        userId: data.userId,
+                        name: data.userName,
+                        role: data.userType === "owner" ? "OWNER" : "EMPLOYEE",
+                    })
+                );
 
-                // 사용자 유형에 따라 분기 이동
                 if (data.userType === "employee") {
                     navigation.replace("EmployeeHome");
                 } else if (data.userType === "owner") {

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context"; // ✅ 추가
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store/store";
 import { logout } from "@/store/userSlice";
@@ -15,7 +16,8 @@ export default function ProfileScreen({ navigation }: any) {
     };
 
     return (
-        <View style={s.container}>
+        <SafeAreaView style={s.container}>
+            {/* 상단 헤더 */}
             <View style={s.header}>
                 <Text style={s.title}>내 정보</Text>
                 <Ionicons name="settings-outline" size={22} color="#111" />
@@ -62,22 +64,24 @@ export default function ProfileScreen({ navigation }: any) {
                     <Text style={[s.menuText, { color: "#FF3B30" }]}>로그아웃</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
+
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingVertical: 10, // 살짝 줄여서 상단 여백 자연스럽게
         borderBottomWidth: 1,
         borderBottomColor: "#eee",
     },
     title: { fontSize: 18, fontWeight: "bold", color: "#111" },
+
     profileSection: {
         flexDirection: "row",
         alignItems: "center",
@@ -92,6 +96,7 @@ const s = StyleSheet.create({
     loginText: { fontSize: 16, fontWeight: "bold", color: "#111" },
     loginRow: { flexDirection: "row", marginTop: 4 },
     linkText: { color: "#007AFF", fontWeight: "bold" },
+
     menuContainer: { marginTop: 10 },
     menuItem: {
         flexDirection: "row",

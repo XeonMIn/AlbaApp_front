@@ -1,39 +1,68 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function TaskScreen({ navigation }: any) {
+export default function TaskScreen() {
+    const [tasks, setTasks] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchTasks = async () => {
+            try {
+                const res = await axios.get("http://10.0.2.2:8081/api/task?employeeId=2"); // 로그인된 알바생 ID
+                setTasks(res.data);
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        fetchTasks();
+    }, []);
+
     return (
-        <View style={s.container}>
+        <SafeAreaView style={s.container}>
             <View style={s.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="chevron-back" size={28} color="#111" />
-                </TouchableOpacity>
                 <Text style={s.title}>오늘의 업무</Text>
-                <View style={{ width: 28 }} />
             </View>
 
-            <View style={s.content}>
-                <Text style={s.text}>오늘 해야 할 업무 목록이 여기에 표시됩니다.</Text>
-            </View>
-        </View>
+            <ScrollView contentContainerStyle={s.content}>
+                {tasks.length > 0 ? (
+                    tasks.map((task) => (
+                        <View key={task.id} style={s.card}>
+                            <Ionicons name="checkmark-circle-outline" size={20} color="#007AFF" />
+                            <View style={{ marginLeft: 8 }}>
+                                <Text style={s.taskTitle}>{task.title}</Text>
+                                <Text style={s.taskDesc}>{task.description}</Text>
+                            </View>
+                        </View>
+                    ))
+                ) : (
+                    <Text style={s.emptyText}>등록된 업무가 없습니다.</Text>
+                )}
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: "#eee",
-        backgroundColor: "#fff",
-        elevation: 3,
     },
-    title: { fontSize: 20, fontWeight: "bold", color: "#111" },
-    content: { flex: 1, justifyContent: "center", alignItems: "center" },
-    text: { fontSize: 16, color: "#555" },
+    title: { fontSize: 20, fontWeight: "bold" },
+    content: { padding: 16 },
+    card: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f9f9f9",
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 10,
+    },
+    taskTitle: { fontSize: 16, fontWeight: "bold" },
+    taskDesc: { fontSize: 13, color: "#555" },
+    emptyText: { textAlign: "center", color: "#999", marginTop: 20 },
 });

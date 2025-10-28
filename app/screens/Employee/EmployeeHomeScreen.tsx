@@ -17,12 +17,17 @@ export default function EmployeeHomeScreen({ navigation }: any) {
 
             {/* 본문 스크롤 영역 */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* 급여 카드 */}
-                <View style={s.salaryCard}>
+
+                {/* ✅ 급여 카드 (클릭 가능하도록 수정) */}
+                <TouchableOpacity
+                    style={s.salaryCard}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate("PayList")}
+                >
                     <Text style={s.salaryLabel}>이번 달 예상 급여</Text>
                     <Text style={s.salaryAmount}>₩ 512,900</Text>
                     <Text style={s.salarySub}>근무 42시간 · 시급 ₩12,000</Text>
-                </View>
+                </TouchableOpacity>
 
                 {/* 출퇴근 카드 */}
                 <View style={s.attendanceCard}>
@@ -87,6 +92,8 @@ const s = StyleSheet.create({
         elevation: 3,
     },
     name: { fontSize: 22, fontWeight: "bold", color: "#111" },
+
+    // ✅ 급여 카드 스타일
     salaryCard: {
         margin: 16,
         borderRadius: 18,
@@ -97,6 +104,7 @@ const s = StyleSheet.create({
     salaryLabel: { color: "#fff", fontSize: 14 },
     salaryAmount: { color: "#fff", fontSize: 32, fontWeight: "bold", marginTop: 6 },
     salarySub: { color: "#eef", fontSize: 13, marginTop: 4 },
+
     attendanceCard: {
         flexDirection: "row",
         justifyContent: "space-around",
@@ -135,19 +143,4 @@ const s = StyleSheet.create({
     },
     noticeText: { marginLeft: 8, color: "#333", fontSize: 13 },
     subText: { marginTop: 4, fontSize: 13, color: "#333" },
-    bottomNav: {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        flexDirection: "row",
-        justifyContent: "space-around",
-        paddingVertical: 10,
-        borderTopWidth: 1,
-        borderTopColor: "#ddd",
-        backgroundColor: "#fff",
-    },
-    navItem: { alignItems: "center" },
-    navText: { fontSize: 12, color: "#555" },
-    navActive: { fontSize: 12, color: "#007AFF", fontWeight: "bold" },
 });

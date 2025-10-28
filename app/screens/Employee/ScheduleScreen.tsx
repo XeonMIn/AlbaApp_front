@@ -95,7 +95,7 @@ export default function ScheduleScreen({ navigation }: any) {
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="chevron-back" size={26} color="#111" />
                 </TouchableOpacity>
-                <Text style={s.title}>📅 근무 일정</Text>
+                <Text style={s.title}>근무 일정</Text>
                 <View style={{ width: 26 }} />
             </View>
 

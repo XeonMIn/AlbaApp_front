@@ -33,7 +33,7 @@ type Schedule = {
     note?: string;
 };
 
-export default function OwnerScheduleScreen() {
+export default function OwnerScheduleScreen({ navigation }: any) {
     const [selectedDate, setSelectedDate] = useState("");
     const [schedules, setSchedules] = useState<Schedule[]>([
         { id: "1", date: "2025-10-25", employee: "김선민", start: "09:00", end: "17:00" },
@@ -88,8 +88,11 @@ export default function OwnerScheduleScreen() {
 
     return (
         <SafeAreaView style={s.container}>
-            {/* 상단 헤더 */}
+            {/* ✅ 상단 헤더 */}
             <View style={s.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Ionicons name="chevron-back" size={26} color="#111" />
+                </TouchableOpacity>
                 <Text style={s.title}>근무 스케줄</Text>
                 <TouchableOpacity
                     onPress={() => {
@@ -200,6 +203,7 @@ export default function OwnerScheduleScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#f8f9fb" },
+
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -208,15 +212,20 @@ const s = StyleSheet.create({
         paddingVertical: 14,
         backgroundColor: "#fff",
         elevation: 3,
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
     },
     title: { fontSize: 20, fontWeight: "bold", color: "#111" },
+
     calendar: {
         margin: 10,
         borderRadius: 12,
         backgroundColor: "#fff",
         elevation: 2,
     },
+
     listContainer: { padding: 16, paddingBottom: 100 },
+
     scheduleCard: {
         flexDirection: "row",
         alignItems: "center",
@@ -230,12 +239,14 @@ const s = StyleSheet.create({
     cardTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
     cardText: { fontSize: 14, color: "#333" },
     noteText: { fontSize: 13, color: "#666", marginTop: 4 },
+
     noScheduleText: {
         textAlign: "center",
         color: "#666",
         marginTop: 20,
         fontSize: 15,
     },
+
     modalBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.4)",
@@ -249,7 +260,12 @@ const s = StyleSheet.create({
         padding: 20,
         elevation: 5,
     },
-    modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 10,
+        textAlign: "center",
+    },
     input: {
         borderWidth: 1,
         borderColor: "#ccc",

@@ -2,13 +2,16 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 
 export default function OwnerHomeScreen({ navigation }: any) {
+    const user = useSelector((state: RootState) => state.user);
     return (
         <SafeAreaView style={s.container}>
             {/* 상단 헤더 */}
             <View style={s.header}>
-                <Text style={s.title}>사장님 홈</Text>
+                <Text style={s.title}>{user.name ? `${user.name}님 홈` : "사장님 홈"}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("OwnerNotice")}>
                     <Ionicons name="notifications-outline" size={26} color="#111" />
                 </TouchableOpacity>

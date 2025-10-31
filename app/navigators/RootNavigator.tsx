@@ -10,7 +10,7 @@ import FindIdScreen from "../Auth/FindIdScreen";
 import FindIdResultScreen from "../Auth/FindIdResultScreen";
 import FindPasswordScreen from "../Auth/FindPasswordScreen";
 import FindPasswordResultScreen from "../Auth/FindPasswordResultScreen";
-import FindAccountScreen from "@/app/Auth/FindAccountScreen";
+import FindAccountScreen from "../Auth/FindAccountScreen";
 
 // ----------------------------------------------------
 // 홈 (탭 네비게이터)
@@ -30,6 +30,10 @@ import OwnerTaskScreen from "../screens/Owner/OwnerTaskScreen";
 // 급여 관련 화면
 import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay";
 
+// ✅ [추가] 알바생 매장 미등록/코드입력 플로우 화면
+import NoWorkplaceScreen from "../screens/Employee/NoWorkplaceScreen";
+import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
+
 // ----------------------------------------------------
 // 네비게이션 타입 정의
 // ----------------------------------------------------
@@ -46,6 +50,10 @@ export type RootStackParamList = {
     // 홈 (탭 네비게이터)
     EmployeeHome: undefined;
     OwnerHome: undefined;
+
+    // ✅ [추가]
+    EmployeeNoWorkplace: undefined;
+    WorkplaceJoin: undefined;
 
     // 공통 화면
     Task: undefined;
@@ -72,7 +80,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // ----------------------------------------------------
 export default function RootNavigator() {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
             {/* 로그인 & 회원가입 */}
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
@@ -81,15 +89,16 @@ export default function RootNavigator() {
             <Stack.Screen name="FindId" component={FindIdScreen} />
             <Stack.Screen name="FindIdResult" component={FindIdResultScreen} />
             <Stack.Screen name="FindPassword" component={FindPasswordScreen} />
-            <Stack.Screen
-                name="FindPasswordResult"
-                component={FindPasswordResultScreen}
-            />
+            <Stack.Screen name="FindPasswordResult" component={FindPasswordResultScreen} />
             <Stack.Screen name="FindAccount" component={FindAccountScreen} />
 
             {/* 홈 (탭 네비게이터) */}
             <Stack.Screen name="EmployeeHome" component={EmployeeTabNavigator} />
             <Stack.Screen name="OwnerHome" component={OwnerTabNavigator} />
+
+            {/* ✅ 알바생 매장 미등록/코드입력 */}
+            <Stack.Screen name="EmployeeNoWorkplace" component={NoWorkplaceScreen} />
+            <Stack.Screen name="WorkplaceJoin" component={WorkplaceJoinScreen} />
 
             {/* 공통 기능 */}
             <Stack.Screen name="Task" component={TaskScreen} />

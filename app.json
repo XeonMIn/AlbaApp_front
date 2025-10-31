@@ -2,6 +2,9 @@
   "expo": {
     "name": "AlbaApp",
     "slug": "AlbaApp",
+    "extra": {
+      "API_BASE_URL": "http://192.168.120.193:8081"
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

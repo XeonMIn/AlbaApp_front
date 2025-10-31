@@ -3,13 +3,18 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store"; // ✅ store 경로는 프로젝트에 맞게 조정
+
 
 export default function EmployeeHomeScreen({ navigation }: any) {
+    const user = useSelector((state: RootState) => state.user); // ✅ Redux 연결
+
     return (
         <SafeAreaView style={s.container}>
             {/* 상단 헤더 */}
             <View style={s.header}>
-                <Text style={s.name}>선민님</Text>
+                <Text style={s.name}>{user.name ? `${user.name}님` : "알바생님"}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Notice")}>
                     <Ionicons name="notifications-outline" size={26} color="#111" />
                 </TouchableOpacity>

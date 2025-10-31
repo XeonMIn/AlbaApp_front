@@ -34,7 +34,9 @@ export default function ProfileScreen({ navigation }: any) {
                     <View style={s.textBox}>
                         <Text style={s.userName}>{user.name}</Text>
                         <Text style={s.userSub}>아이디: {user.userId}</Text>
-                        <Text style={s.userSub}>유형: {user.role}</Text>
+                        <Text style={s.userSub}>
+                            유형: {user.role === "OWNER" ? "사장님" : "알바생"}
+                        </Text>
                     </View>
                 ) : (
                     <View style={s.textBox}>

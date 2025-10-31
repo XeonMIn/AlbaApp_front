@@ -43,27 +43,35 @@ export default function RegisterScreen() {
             setLoading(true);
 
             const response = await axios.post("http://10.0.2.2:8081/member/signup", {
-                userid: userId,                // ✅ 백엔드 DTO 필드 이름과 통일
-                password: password,
-                name: name,
-                email: email,
-                phone: phoneNumber,
-                role: userType === "owner" ? "OWNER" : "EMPLOYEE",  // ✅ role 필드 채우기
-                birthdate: "2000-01-01",       // ✅ 테스트용으로 임시 값 (나중에 입력 필드 추가 가능)
+                userId,
+                password,
+                name,
+                email,
+                phoneNumber,
+                role: userType === "owner" ? "owner" : "employee",
+                birthdate: "2000-01-01",
                 businessLicense: userType === "owner" ? businessLicense : null
             });
 
             const data = response.data;
+            //console.log("회원가입 응답:", data); // ✅ 응답 확인용 로그
 
-            if (data.success) {
-                Alert.alert("회원가입 완료", data.message || "회원가입이 완료되었습니다.");
+            // ✅ 문자열 응답일 때 처리
+            if (typeof data === "string" && data.includes("성공")) {
+                Alert.alert("회원가입 완료", "회원가입이 성공적으로 완료되었습니다!");
                 navigation.replace("Login");
+            } else if (typeof data === "string" && data.includes("이미 존재")) {
+                Alert.alert("회원가입 실패", "이미 존재하는 아이디입니다.");
             } else {
-                Alert.alert("회원가입 실패", data.message || "이미 존재하는 아이디입니다.");
+                Alert.alert("회원가입 실패", data.message || "회원가입 중 문제가 발생했습니다.");
             }
         } catch (error: any) {
-            console.error(error);
-            Alert.alert("서버 오류", "회원가입 요청 중 문제가 발생했습니다.");
+            console.error("회원가입 오류:", error);
+            if (error.response?.data?.includes("이미 존재")) {
+                Alert.alert("회원가입 실패", "이미 존재하는 아이디입니다.");
+            } else {
+                Alert.alert("서버 오류", "회원가입 요청 중 문제가 발생했습니다.");
+            }
         } finally {
             setLoading(false);
         }

@@ -21,7 +21,7 @@ type Notice = {
     important: boolean;
 };
 
-export default function OwnerNoticeScreen() {
+export default function OwnerNoticeScreen({ navigation }: any) {
     const [notices, setNotices] = useState<Notice[]>([
         {
             id: "1",
@@ -78,8 +78,11 @@ export default function OwnerNoticeScreen() {
 
     return (
         <SafeAreaView style={s.container}>
-            {/* 상단 헤더 */}
+            {/* ✅ 상단 헤더 */}
             <View style={s.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Ionicons name="chevron-back" size={26} color="#111" />
+                </TouchableOpacity>
                 <Text style={s.title}>📢 공지사항 관리</Text>
                 <TouchableOpacity onPress={() => setModalVisible(true)}>
                     <Ionicons name="add-circle-outline" size={28} color="#007AFF" />
@@ -175,6 +178,8 @@ const s = StyleSheet.create({
         paddingVertical: 14,
         backgroundColor: "#fff",
         elevation: 3,
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
     },
     title: { fontSize: 20, fontWeight: "bold", color: "#111" },
 
@@ -197,7 +202,6 @@ const s = StyleSheet.create({
     noticeDate: { fontSize: 12, color: "#888" },
     noNotice: { textAlign: "center", color: "#777", marginTop: 20 },
 
-    // 모달 스타일
     modalBackground: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.4)",

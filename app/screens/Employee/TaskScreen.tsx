@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function TaskScreen() {
+export default function TaskScreen({ navigation }: any) {
     const [tasks, setTasks] = useState<any[]>([]);
 
     useEffect(() => {
@@ -21,10 +21,16 @@ export default function TaskScreen() {
 
     return (
         <SafeAreaView style={s.container}>
+            {/* ✅ 상단 헤더 */}
             <View style={s.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Ionicons name="chevron-back" size={26} color="#111" />
+                </TouchableOpacity>
                 <Text style={s.title}>오늘의 업무</Text>
+                <View style={{ width: 26 }} /> {/* 오른쪽 여백 균형 맞추기 */}
             </View>
 
+            {/* ✅ 업무 리스트 */}
             <ScrollView contentContainerStyle={s.content}>
                 {tasks.length > 0 ? (
                     tasks.map((task) => (
@@ -46,23 +52,31 @@ export default function TaskScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
+
     header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
         paddingHorizontal: 20,
-        paddingVertical: 12,
+        paddingVertical: 14,
+        backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#eee",
+        elevation: 3,
     },
-    title: { fontSize: 20, fontWeight: "bold" },
-    content: { padding: 16 },
+    title: { fontSize: 20, fontWeight: "bold", color: "#111" },
+
+    content: { padding: 16, paddingBottom: 100 },
     card: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#f9f9f9",
-        borderRadius: 8,
+        borderRadius: 10,
         padding: 12,
         marginBottom: 10,
+        elevation: 2,
     },
-    taskTitle: { fontSize: 16, fontWeight: "bold" },
-    taskDesc: { fontSize: 13, color: "#555" },
-    emptyText: { textAlign: "center", color: "#999", marginTop: 20 },
+    taskTitle: { fontSize: 16, fontWeight: "bold", color: "#111" },
+    taskDesc: { fontSize: 13, color: "#555", marginTop: 2 },
+    emptyText: { textAlign: "center", color: "#999", marginTop: 20, fontSize: 15 },
 });

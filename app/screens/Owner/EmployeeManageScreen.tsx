@@ -23,9 +23,9 @@ type Employee = {
 
 export default function EmployeeManageScreen({ navigation }: any) {
     const [employees, setEmployees] = useState<Employee[]>([
-        { id: "1", name: "테스트 계정 1", role: "매니저", wage: 12000, status: "출근" },
-        { id: "2", name: "테스트 계정 2", role: "직원", wage: 11000, status: "퇴근" },
-        { id: "3", name: "테스트 계정 3", role: "직원", wage: 13000, status: "출근" },
+        { id: "1", name: "이호섭", role: "매니저", wage: 12000, status: "출근" },
+        { id: "2", name: "이수환", role: "직원", wage: 11000, status: "퇴근" },
+        { id: "3", name: "박상현", role: "직원", wage: 13000, status: "출근" },
     ]);
 
     // 모달 상태 관리

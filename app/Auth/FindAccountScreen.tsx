@@ -6,8 +6,10 @@ import {
     Pressable,
     StyleSheet,
     TouchableOpacity,
+    Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 
 export default function FindAccountScreen({ navigation }: any) {
     const [tab, setTab] = useState<"id" | "password">("id");
@@ -18,9 +20,31 @@ export default function FindAccountScreen({ navigation }: any) {
     const [email, setEmail] = useState("");
     const [userId, setUserId] = useState("");
 
-    const handleFindId = () => {
-        const foundId = "testUser01"; // API 응답이라고 가정
-        navigation.navigate("FindIdResult", { userId: foundId });
+    const handleFindId = async () => {
+        if (!name || !phone || !email) {
+            return Alert.alert("입력 오류", "모든 항목을 입력해주세요.");
+        }
+
+        try {
+            const response = await axios.post("http://10.0.2.2:8081/member/findid", {
+                name: name,
+                email: email,
+                phoneNumber: phone,
+            });
+
+            console.log("서버 응답:", response.data);
+
+            const data = response.data;
+
+            if (data.userId) {
+                navigation.navigate("FindIdResult", { userId: data.userId });
+            } else {
+                Alert.alert("조회 실패", "회원 정보를 찾을 수 없습니다.");
+            }
+        } catch (error: any) {
+            console.error("아이디 찾기 오류:", error.response?.data || error.message);
+            Alert.alert("조회 실패", error.response?.data || "회원 정보를 찾을 수 없습니다.");
+        }
     };
 
     const handleFindPassword = () => {

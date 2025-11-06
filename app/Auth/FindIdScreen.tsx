@@ -6,18 +6,48 @@ import {
     Pressable,
     StyleSheet,
     TouchableOpacity,
+    Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
 
 export default function FindIdScreen({ navigation }: any) {
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleFindId = () => {
-        // 실제 API 호출 → 서버에서 이름/전화번호/이메일로 아이디 조회
-        const foundId = "testUser01";
-        navigation.navigate("FindIdResult", { userId: foundId });
+    const handleFindId = async () => {
+        if (!name || !phone || !email) {
+            return Alert.alert("입력 오류", "모든 항목을 입력해주세요.");
+        }
+
+        try {
+            setLoading(true);
+
+            // ✅ 백엔드 요청 (POST)
+            const response = await axios.post("http://10.0.2.2:8081/member/findid", {
+                name: name,
+                email: email,
+                phoneNumber: phone, // ⚠️ 백엔드 필드 이름과 일치해야 함
+            });
+
+            console.log("서버 응답:", response.data);
+
+            const data = response.data;
+
+            // ✅ 정상 응답 처리
+            if (data.userId) {
+                navigation.navigate("FindIdResult", { userId: data.userId });
+            } else {
+                Alert.alert("조회 실패", "회원 정보를 찾을 수 없습니다.");
+            }
+        } catch (error: any) {
+            console.error("아이디 찾기 오류:", error.response?.data || error.message);
+            Alert.alert("조회 실패", error.response?.data || "회원 정보를 찾을 수 없습니다.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -53,8 +83,14 @@ export default function FindIdScreen({ navigation }: any) {
             />
 
             {/* 아이디 찾기 버튼 */}
-            <Pressable style={s.button} onPress={handleFindId}>
-                <Text style={s.buttonText}>아이디 찾기</Text>
+            <Pressable
+                style={[s.button, loading && { opacity: 0.6 }]}
+                onPress={handleFindId}
+                disabled={loading}
+            >
+                <Text style={s.buttonText}>
+                    {loading ? "조회 중..." : "아이디 찾기"}
+                </Text>
             </Pressable>
 
             {/* 비밀번호 찾기 링크 */}

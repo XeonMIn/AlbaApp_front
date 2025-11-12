@@ -53,20 +53,22 @@ export default function LoginScreen({ navigation }: any) {
 
             const data = response.data;
 
-            if (data.success) {
-                Alert.alert("로그인 성공", `${data.userName}님 환영합니다!`);
+            if (data.accessToken) {
+                Alert.alert("로그인 성공", `${data.name}님 환영합니다!`);
 
+                // ✅ Redux 저장
                 dispatch(
                     setUser({
                         userId: data.userId,
-                        name: data.userName,
-                        role: data.userType === "owner" ? "OWNER" : "EMPLOYEE",
+                        name: data.name,
+                        role: data.role?.toUpperCase() === "OWNER" ? "OWNER" : "EMPLOYEE",
                     })
                 );
 
-                if (data.userType === "employee") {
+                const role = data.role?.toLowerCase();
+                if (role === "employee") {
                     navigation.replace("EmployeeHome");
-                } else if (data.userType === "owner") {
+                } else if (role === "owner") {
                     navigation.replace("OwnerHome");
                 } else {
                     Alert.alert("알 수 없는 사용자 유형입니다.");

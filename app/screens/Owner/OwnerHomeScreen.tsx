@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
+// @ts-ignore
 import type { RootState } from "@/store";
 
 export default function OwnerHomeScreen({ navigation }: any) {

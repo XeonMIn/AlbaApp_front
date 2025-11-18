@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useCallback } from "react";
 import {
     View,
     Text,
@@ -13,6 +13,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import WheelPickerExpo from "react-native-wheel-picker-expo";
+import {
+    getSchedulesByWorkplaceAndDay,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
+    BackendSchedule,
+} from "../../../api/schedule";
+
+
+
+
+
 
 type ScheduleItem = {
     id: number;
@@ -36,22 +48,37 @@ export default function ScheduleScreen() {
     const [endHour, setEndHour] = useState(13);
     const [endMinute, setEndMinute] = useState(0);
 
-    const [schedules, setSchedules] = useState<Record<string, ScheduleItem[]>>({
-        "2025-11-07": [
-            {
-                id: 1,
-                title: "스마트커피 오전 근무",
-                start: "09:00",
-                end: "13:00",
-                status: "진행중",
-            },
-        ],
-    });
+    const [schedules, setSchedules] = useState<Record<string, ScheduleItem[]>>({});
 
-    const handleDayPress = (day: any) => {
-        setSelectedDate(day.dateString);
-        bottomSheetRef.current?.expand();
-    };
+    const workplaceId = 1; // TODO: 실제 선택된 매장 ID로 교체
+
+    const handleDayPress = useCallback(
+        async (day: any) => {
+            const dateString = day.dateString; // "YYYY-MM-DD"
+            setSelectedDate(dateString);
+
+            const dayOfWeek = getDayOfWeek(dateString);
+
+            try {
+                const backendList = await getSchedulesByWorkplaceAndDay(
+                    workplaceId,
+                    dayOfWeek
+                );
+
+                setSchedules((prev) => ({
+                    ...prev,
+                    [dateString]: backendList.map(toScheduleItem),
+                }));
+
+                bottomSheetRef.current?.expand();
+            } catch (e) {
+                console.log("스케줄 조회 실패:", e);
+                Alert.alert("오류", "스케줄을 불러오지 못했습니다.");
+            }
+        },
+        [workplaceId]
+    );
+
 
     const handleAddPress = () => {
         if (!selectedDate) {
@@ -67,34 +94,58 @@ export default function ScheduleScreen() {
         setShowModal(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!title.trim()) {
             return Alert.alert("입력 오류", "일정 제목을 입력해주세요.");
+        }
+        if (!selectedDate) {
+            return Alert.alert("날짜 선택", "먼저 날짜를 선택해주세요.");
         }
 
         const formatTime = (h: number, m: number) =>
             `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 
-        const newItem: ScheduleItem = {
-            id: editingId || Date.now(),
-            title,
-            start: formatTime(startHour, startMinute),
-            end: formatTime(endHour, endMinute),
-            status: "예정",
+        const startStr = formatTime(startHour, startMinute); // "09:00"
+        const endStr = formatTime(endHour, endMinute);       // "13:00"
+
+        const dayOfWeek = getDayOfWeek(selectedDate);
+
+        // 백엔드 DTO 형식 ("HH:mm:00")
+        const dto = {
+            dayOfWeek,
+            startTime: `${startStr}:00`,
+            endTime: `${endStr}:00`,
         };
 
-        setSchedules((prev) => {
-            const existing = prev[selectedDate] || [];
-            const updated = editingId
-                ? existing.map((s) => (s.id === editingId ? newItem : s))
-                : [...existing, newItem];
-            return { ...prev, [selectedDate]: updated };
-        });
+        try {
+            if (editingId) {
+                // 수정
+                await updateSchedule(editingId, dto);
+            } else {
+                // 새 일정 생성 (employmentId 필요하면 세 번째 인자로 전달)
+                await createSchedule(workplaceId, dto);
+            }
 
-        setShowModal(false);
-        setEditingId(null);
-        setTitle("");
+            // 저장 후 해당 날짜 스케줄 다시 조회
+            const backendList = await getSchedulesByWorkplaceAndDay(
+                workplaceId,
+                dayOfWeek
+            );
+
+            setSchedules((prev) => ({
+                ...prev,
+                [selectedDate]: backendList.map(toScheduleItem),
+            }));
+
+            setShowModal(false);
+            setEditingId(null);
+            setTitle("");
+        } catch (e) {
+            console.log("스케줄 저장 실패:", e);
+            Alert.alert("오류", "스케줄을 저장하지 못했습니다.");
+        }
     };
+
 
     const handleEdit = (item: ScheduleItem) => {
         const [sh, sm] = item.start.split(":");
@@ -109,19 +160,53 @@ export default function ScheduleScreen() {
     };
 
     const handleDelete = (id: number) => {
+        if (!selectedDate) return;
+
         Alert.alert("삭제 확인", "이 일정을 삭제하시겠습니까?", [
             { text: "취소", style: "cancel" },
             {
                 text: "삭제",
                 style: "destructive",
-                onPress: () =>
-                    setSchedules((prev) => ({
-                        ...prev,
-                        [selectedDate]: prev[selectedDate].filter((s) => s.id !== id),
-                    })),
+                onPress: async () => {
+                    try {
+                        await deleteSchedule(id);
+
+                        const dayOfWeek = getDayOfWeek(selectedDate);
+                        const backendList = await getSchedulesByWorkplaceAndDay(
+                            workplaceId,
+                            dayOfWeek
+                        );
+
+                        setSchedules((prev) => ({
+                            ...prev,
+                            [selectedDate]: backendList.map(toScheduleItem),
+                        }));
+                    } catch (e) {
+                        console.log("삭제 실패:", e);
+                        Alert.alert("오류", "일정을 삭제하지 못했습니다.");
+                    }
+                },
             },
         ]);
     };
+
+
+    const getDayOfWeek = (dateString: string): string => {
+        const d = new Date(dateString);
+        const idx = d.getDay(); // 0~6
+        const map = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+        return map[idx];
+    };
+
+// 백엔드 스케줄을 화면에서 쓰는 ScheduleItem 형식으로 변환
+    const toScheduleItem = (s: BackendSchedule): ScheduleItem => ({
+        id: s.id,
+        title: "근무 스케줄", // DTO에 제목 있으면 s.title 같은 걸로 바꿔주면 됨
+        start: s.startTime.slice(0, 5), // "09:00:00" -> "09:00"
+        end: s.endTime.slice(0, 5),
+        status: "예정",
+    });
+
 
     return (
         <SafeAreaView style={s.container}>

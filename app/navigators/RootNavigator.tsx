@@ -11,6 +11,8 @@ import FindIdResultScreen from "../Auth/FindIdResultScreen";
 import FindPasswordScreen from "../Auth/FindPasswordScreen";
 import FindPasswordResultScreen from "../Auth/FindPasswordResultScreen";
 import FindAccountScreen from "../Auth/FindAccountScreen";
+import AutoLoginScreen from "../Auth/AutoLoginScreen";
+
 
 // ----------------------------------------------------
 // 홈 (탭 네비게이터)
@@ -39,6 +41,7 @@ import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 // ----------------------------------------------------
 export type RootStackParamList = {
     // 인증 관련
+    AutoLogin: undefined;
     Login: undefined;
     Register: undefined;
     FindId: undefined;
@@ -81,8 +84,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // ----------------------------------------------------
 export default function RootNavigator() {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="AutoLogin">
+
             {/* 로그인 & 회원가입 */}
+            <Stack.Screen name="AutoLogin" component={AutoLoginScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
 

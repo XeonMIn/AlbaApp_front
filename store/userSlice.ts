@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface UserState {
+    id: number | null;
     userId: string | null;
     name: string | null;
     role: string | null;
@@ -9,6 +10,7 @@ interface UserState {
 }
 
 const initialState: UserState = {
+    id: null,
     userId: null,
     name: null,
     role: null,
@@ -24,12 +26,14 @@ const userSlice = createSlice({
         setUser: (
             state,
             action: PayloadAction<{
+                id: number;
                 userId: string;
                 name: string;
                 role: string;
                 accessToken?: string | null;
             }>
         ) => {
+            state.id = action.payload.id;
             state.userId = action.payload.userId;
             state.name = action.payload.name;
             state.role = action.payload.role;
@@ -39,6 +43,7 @@ const userSlice = createSlice({
 
         // 로그아웃 (401 자동 로그아웃 포함)
         logout: (state) => {
+            state.id = null;
             state.userId = null;
             state.name = null;
             state.role = null;

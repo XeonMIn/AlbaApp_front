@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
-import axios from "axios";
+import { loginRequest } from "@/api/auth.api";
 import { useDispatch } from "react-redux";
 import { setUser } from "@/store/userSlice"; // 경로는 프로젝트 구조에 맞게 조정
 
@@ -22,7 +22,7 @@ export default function LoginScreen({ navigation }: any) {
             dispatch(
                 setUser({
                     userId: "eee",
-                    name: "이호섭",
+                    name: "알바생 테스트 계정",
                     role: "EMPLOYEE",
                 })
             );
@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }: any) {
             dispatch(
                 setUser({
                     userId: "ooo",
-                    name: "이호섭",
+                    name: "사장님 테스트 계정",
                     role: "OWNER",
                 })
             );
@@ -46,39 +46,27 @@ export default function LoginScreen({ navigation }: any) {
 
         try {
             setLoading(true);
-            const response = await axios.post("http://10.0.2.2:8081/member/login", {
-                userId,
-                password,
-            });
+            const data = await loginRequest(userId, password);
 
-            const data = response.data;
 
-            if (data.accessToken) {
-                Alert.alert("로그인 성공", `${data.name}님 환영합니다!`);
+            Alert.alert("로그인 성공", `${data.name}님 환영합니다!`);
 
-                // ✅ Redux 저장
-                dispatch(
-                    setUser({
-                        userId: data.userId,
-                        name: data.name,
-                        role: data.role?.toUpperCase() === "OWNER" ? "OWNER" : "EMPLOYEE",
-                    })
-                );
+            dispatch(
+                setUser({
+                    userId: data.userId,
+                    name: data.name,
+                    role: data.role.toUpperCase(),
+                })
+            );
 
-                const role = data.role?.toLowerCase();
-                if (role === "employee") {
-                    navigation.replace("EmployeeHome");
-                } else if (role === "owner") {
-                    navigation.replace("OwnerHome");
-                } else {
-                    Alert.alert("알 수 없는 사용자 유형입니다.");
-                }
+            if (data.role.toLowerCase() === "employee") {
+                navigation.replace("EmployeeHome");
             } else {
-                Alert.alert("로그인 실패", "아이디 또는 비밀번호가 올바르지 않습니다.");
+                navigation.replace("OwnerHome");
             }
-        } catch (error: any) {
-            console.error(error);
-            Alert.alert("서버 오류", "로그인 요청 중 문제가 발생했습니다.");
+        } catch (error) {
+            console.log(error);
+            Alert.alert("로그인 실패", "아이디 또는 비밀번호를 확인해주세요.");
         } finally {
             setLoading(false);
         }

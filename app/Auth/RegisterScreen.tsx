@@ -8,7 +8,7 @@ import {
     Alert,
     ScrollView,
 } from "react-native";
-import axios from "axios";
+import { registerRequest } from "@/api/auth.api";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigators/RootNavigator";
@@ -32,50 +32,41 @@ export default function RegisterScreen() {
     const [loading, setLoading] = useState(false);
 
     const handleRegister = async () => {
-        if (!userId || !password || !confirmPassword || !email || !name || !phoneNumber) {
-            return Alert.alert("입력 오류", "필수 항목을 모두 입력해주세요.");
+        if (!userId || !password || !email || !name || !phoneNumber) {
+            return Alert.alert("입력 오류", "모든 항목을 입력해주세요.");
         }
+
         if (password !== confirmPassword) {
-            return Alert.alert("비밀번호 오류", "비밀번호가 일치하지 않습니다.");
+            return Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
         }
 
         try {
             setLoading(true);
 
-            const response = await axios.post("http://10.0.2.2:8081/member/signup", {
+            const body = {
                 userId,
                 password,
-                name,
                 email,
+                birthdate: "2000-01-01", // 나중에 입력받기 전까지 임시로 사용
+                name,
                 phoneNumber,
-                role: userType === "owner" ? "owner" : "employee",
-                birthdate: "2000-01-01",
-                businessLicense: userType === "owner" ? businessLicense : null
-            });
+                role: userType === "owner" ? "OWNER" : "EMPLOYEE",
+            };
 
-            const data = response.data;
-            //console.log("회원가입 응답:", data); // ✅ 응답 확인용 로그
+            const data = await registerRequest(body);
 
-            // ✅ 문자열 응답일 때 처리
-            if (typeof data === "string" && data.includes("성공")) {
-                Alert.alert("회원가입 완료", "회원가입이 성공적으로 완료되었습니다!");
-                navigation.replace("Login");
-            } else if (typeof data === "string" && data.includes("이미 존재")) {
-                Alert.alert("회원가입 실패", "이미 존재하는 아이디입니다.");
-            } else {
-                Alert.alert("회원가입 실패", data.message || "회원가입 중 문제가 발생했습니다.");
-            }
-        } catch (error: any) {
-            console.error("회원가입 오류:", error);
-            if (error.response?.data?.includes("이미 존재")) {
-                Alert.alert("회원가입 실패", "이미 존재하는 아이디입니다.");
-            } else {
-                Alert.alert("서버 오류", "회원가입 요청 중 문제가 발생했습니다.");
-            }
+            Alert.alert("회원가입 완료", data.message || "정상적으로 가입되었습니다!");
+            navigation.replace("Login");
+
+        } catch (err) {
+            console.log("회원가입 오류:", err);
+            Alert.alert("회원가입 실패", "서버 오류 또는 입력값을 확인해주세요.");
         } finally {
             setLoading(false);
         }
     };
+
+
 
     return (
         <ScrollView contentContainerStyle={s.container}>

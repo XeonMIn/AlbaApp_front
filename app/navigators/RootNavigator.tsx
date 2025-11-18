@@ -30,7 +30,7 @@ import OwnerTaskScreen from "../screens/Owner/OwnerTaskScreen";
 // 급여 관련 화면
 import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay";
 
-// ✅ [추가] 알바생 매장 미등록/코드입력 플로우 화면
+// ✅ 알바생 매장 미등록/코드입력 플로우 화면
 import NoWorkplaceScreen from "../screens/Employee/NoWorkplaceScreen";
 import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 
@@ -48,10 +48,11 @@ export type RootStackParamList = {
     FindAccount: undefined;
 
     // 홈 (탭 네비게이터)
+    // ⚠️ Root에선 컨테이너 이름을 그대로 사용(외부 코드 호환), 내부 탭의 홈 화면 이름만 바꿔서 중복 제거
     EmployeeHome: undefined;
     OwnerHome: undefined;
 
-    // ✅ [추가]
+    // ✅ 알바생 매장 미등록/코드입력
     EmployeeNoWorkplace: undefined;
     WorkplaceJoin: undefined;
 

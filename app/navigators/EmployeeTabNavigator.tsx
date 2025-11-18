@@ -10,6 +10,11 @@ import ProfileScreen from "../screens/Employee/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
 
+/**
+ * ⚙️ 변경 포인트(중복 경고 제거):
+ * - 탭 내부의 홈 스크린 name을 "EmployeeHome" → "EmployeeHomeMain" 으로 변경
+ * - Root 스택의 컨테이너는 여전히 "EmployeeHome" 이므로 외부 네비게이션 코드는 그대로 동작
+ */
 export default function EmployeeTabNavigator() {
     return (
         <Tab.Navigator
@@ -26,8 +31,7 @@ export default function EmployeeTabNavigator() {
                 },
                 tabBarIcon: ({ color, focused }) => {
                     let iconName: keyof typeof Ionicons.glyphMap = "home";
-
-                    if (route.name === "EmployeeHome") {
+                    if (route.name === "EmployeeHomeMain") {
                         iconName = focused ? "home" : "home-outline";
                     } else if (route.name === "Schedule") {
                         iconName = focused ? "calendar" : "calendar-outline";
@@ -36,34 +40,31 @@ export default function EmployeeTabNavigator() {
                     } else if (route.name === "Profile") {
                         iconName = focused ? "person" : "person-outline";
                     }
-
                     return <Ionicons name={iconName} size={22} color={color} />;
                 },
-                tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: "bold",
-                },
+                tabBarLabelStyle: { fontSize: 12, fontWeight: "bold" },
             })}
         >
+            {/* ✅ 이름만 바꿨습니다. (기능 동일) */}
             <Tab.Screen
-                name="EmployeeHome"
+                name="EmployeeHomeMain"
                 component={EmployeeHomeScreen}
-                options={{ tabBarLabel: "홈" }}
+                options={{ tabBarLabel: "홈", title: "홈" }}
             />
             <Tab.Screen
                 name="Schedule"
                 component={ScheduleScreen}
-                options={{ tabBarLabel: "일정" }}
+                options={{ tabBarLabel: "일정", title: "일정" }}
             />
             <Tab.Screen
                 name="Chat"
                 component={ChatScreen}
-                options={{ tabBarLabel: "채팅" }}
+                options={{ tabBarLabel: "채팅", title: "채팅" }}
             />
             <Tab.Screen
                 name="Profile"
                 component={ProfileScreen}
-                options={{ tabBarLabel: "내 정보" }}
+                options={{ tabBarLabel: "내 정보", title: "내 정보" }}
             />
         </Tab.Navigator>
     );

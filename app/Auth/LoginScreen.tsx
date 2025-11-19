@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
 import { loginRequest } from "@/api/auth.api";
 import { useDispatch } from "react-redux";
-import { setUser } from "@/store/userSlice"; // 경로는 프로젝트 구조에 맞게 조정
+import { setUser } from "@/store/userSlice";
 
 export default function LoginScreen({ navigation }: any) {
     const [userId, setUserId] = useState("");
@@ -15,59 +15,74 @@ export default function LoginScreen({ navigation }: any) {
             return Alert.alert("입력 오류", "아이디와 비밀번호를 입력해주세요.");
         }
 
-        // 임시 로그인 (백엔드 연결 전 Redux 테스트용)
-        // if (userId === "eee" && password === "123") {
-        //     Alert.alert("로그인 성공", "알바생 계정으로 로그인되었습니다.");
-        //
-        //     dispatch(
-        //         setUser({
-        //             userId: "eee",
-        //             name: "알바생 테스트 계정",
-        //             role: "EMPLOYEE",
-        //         })
-        //     );
-        //
-        //     navigation.replace("EmployeeHome");
-        //     return;
-        // } else if (userId === "ooo" && password === "123") {
-        //     Alert.alert("로그인 성공", "사장님 계정으로 로그인되었습니다.");
-        //
-        //     dispatch(
-        //         setUser({
-        //             userId: "ooo",
-        //             name: "사장님 테스트 계정",
-        //             role: "OWNER",
-        //         })
-        //     );
-        //
-        //     navigation.replace("OwnerHome");
-        //     return;
-        // }
-
         try {
             setLoading(true);
-            const data = await loginRequest(userId, password);
 
+            // 🔥 백엔드 로그인 요청
+            const data: any = await loginRequest(userId, password);
+
+            console.log("### login response:", data);
+
+            // -----------------------------
+            // 1) role 정규화
+            //    - ALBA / OWNER (백엔드 enum)
+            //    - employee / owner (프론트에서 쓸 문자열)
+            // 둘 다 대응되게 처리
+            // -----------------------------
+            const rawRole: string = typeof data.role === "string" ? data.role : "";
+            const upperRole = rawRole.toUpperCase(); // ALBA, OWNER, EMPLOYEE 등
+
+            const isEmployee =
+                upperRole === "ALBA" || // 백엔드 enum
+                upperRole === "EMPLOYEE" || // 혹시 프론트에서 이렇게 바꿨을 수도 있음
+                rawRole.toLowerCase() === "employee";
+
+            // -----------------------------
+            // 2) 매장 보유 여부 판별
+            //    - 백엔드에서 workplaceId 내려주면 그걸 기준으로
+            // -----------------------------
+            const hasWorkplace =
+                data.workplaceId !== null &&
+                data.workplaceId !== undefined;
+
+            console.log("isEmployee:", isEmployee, "hasWorkplace:", hasWorkplace);
 
             Alert.alert("로그인 성공", `${data.name}님 환영합니다!`);
 
+            // -----------------------------
+            // 3) Redux에 유저 정보 저장
+            //    (기존 기능 유지, workplace는 옵션)
+            // -----------------------------
             dispatch(
                 setUser({
                     id: data.id,
                     userId: data.userId,
                     name: data.name,
-                    role: data.role.toUpperCase(),
+                    role: upperRole,          // ALBA / OWNER / EMPLOYEE ...
                     accessToken: data.accessToken,
-                })
+                    // userSlice에 이런 필드 미리 안 만들어 놨으면
+                    // 아래 두 줄은 아예 빼도 상관 없음
+                    workplaceId: hasWorkplace ? data.workplaceId : null,
+                    workplaceName: hasWorkplace ? data.workplaceName : null,
+                } as any)
             );
 
-            if (data.role.toLowerCase() === "employee") {
+            // -----------------------------
+            // 4) 실제 네비게이션 분기
+            // -----------------------------
+            if (isEmployee && hasWorkplace) {
+                // ✅ 알바 + 매장 O → 직원 탭
+                navigation.replace("EmployeeTabs");
+            } else if (isEmployee && !hasWorkplace) {
+                // ✅ 알바 + 매장 X → 매장 등록 흐름
                 navigation.replace("EmployeeNoWorkplace");
             } else {
+                // ✅ 그 외(사장님) → 사장님 탭
                 navigation.replace("OwnerTabs");
             }
+
         } catch (error) {
-            console.log(error);
+            console.log("로그인 에러:", error);
             Alert.alert("로그인 실패", "아이디 또는 비밀번호를 확인해주세요.");
         } finally {
             setLoading(false);
@@ -92,7 +107,10 @@ export default function LoginScreen({ navigation }: any) {
                 onChangeText={setPassword}
             />
 
-            <Pressable style={[s.loginButton, loading && { opacity: 0.5 }]} onPress={handleLogin}>
+            <Pressable
+                style={[s.loginButton, loading && { opacity: 0.5 }]}
+                onPress={handleLogin}
+            >
                 <Text style={s.loginButtonText}>
                     {loading ? "로그인 중..." : "로그인"}
                 </Text>

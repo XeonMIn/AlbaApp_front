@@ -10,36 +10,60 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { joinWorkplace } from "@/api/employment.api"; // ⭐ 추가
 
 export default function WorkplaceJoinScreen({ navigation }: any) {
     const [code, setCode] = useState("");
+    const [loading, setLoading] = useState(false); // ⭐ 로딩 상태
 
     const handleBack = () => {
         if (navigation.canGoBack()) {
             navigation.goBack();
         } else {
             // 스택이 없을 때를 대비한 fallback
-            navigation.navigate("EmployeeNoWorkplace");
+            navigation.navigate("Login");
         }
     };
 
-    const submit = () => {
+    const submit = async () => {
         const trimmed = code.trim();
         if (!trimmed) {
             return Alert.alert("입력 오류", "매장 코드를 입력하세요.");
         }
 
-        // ✅ 백엔드 없이 즉시 성공 처리 → 직원 홈으로 이동
-        Alert.alert("완료", "매장 등록이 완료되었어요.", [
-            {
-                text: "확인",
-                onPress: () =>
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: "EmployeeTabs" }],
-                    }),
-            },
-        ]);
+        try {
+            setLoading(true);
+
+            // ⭐ 실제 백엔드 호출
+            const res = await joinWorkplace(trimmed);
+            // res: { success: true, workplaceId, workplaceName }
+
+            Alert.alert(
+                "매장 등록 완료",
+                `${res.workplaceName} 매장에 연결되었어요.`,
+                [
+                    {
+                        text: "확인",
+                        onPress: () =>
+                            navigation.reset({
+                                index: 0,
+                                routes: [{ name: "EmployeeTabs" }],
+                            }),
+                    },
+                ]
+            );
+        } catch (error: any) {
+            console.log("joinWorkplace error:", error);
+
+            const msg =
+                error?.response?.data?.message ??
+                error?.message ??
+                "매장 등록 중 오류가 발생했습니다.\n코드를 다시 확인해주세요.";
+
+            Alert.alert("등록 실패", msg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -66,8 +90,14 @@ export default function WorkplaceJoinScreen({ navigation }: any) {
                     returnKeyType="done"
                     onSubmitEditing={submit}
                 />
-                <Pressable style={s.submit} onPress={submit}>
-                    <Text style={s.submitText}>등록</Text>
+                <Pressable
+                    style={[s.submit, loading && { opacity: 0.6 }]}
+                    onPress={submit}
+                    disabled={loading}
+                >
+                    <Text style={s.submitText}>
+                        {loading ? "등록 중..." : "등록"}
+                    </Text>
                 </Pressable>
             </View>
         </SafeAreaView>

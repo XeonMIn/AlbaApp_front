@@ -35,6 +35,8 @@ import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay"
 // ✅ 알바생 매장 미등록/코드입력 플로우 화면
 import NoWorkplaceScreen from "../screens/Employee/NoWorkplaceScreen";
 import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
+import OwnerEmptyWorkplaceScreen from "@/app/screens/Owner/OwnerEmptyWorkplaceScreen";
+import RegisterWorkplaceScreen from "@/app/screens/Owner/RegisterWorkplaceScreen";
 
 // ----------------------------------------------------
 // 네비게이션 타입 정의
@@ -58,6 +60,9 @@ export type RootStackParamList = {
     // ✅ 알바생 매장 미등록/코드입력
     EmployeeNoWorkplace: undefined;
     WorkplaceJoin: undefined;
+    // ✅ 사장 매장 미등록/코드입력
+    OwnerEmpty: undefined;
+    RegisterWorkplace: undefined;
 
     // 공통 화면
     Task: undefined;
@@ -105,7 +110,9 @@ export default function RootNavigator() {
             {/* ✅ 알바생 매장 미등록/코드입력 */}
             <Stack.Screen name="EmployeeNoWorkplace" component={NoWorkplaceScreen} />
             <Stack.Screen name="WorkplaceJoin" component={WorkplaceJoinScreen} />
-
+            {/* ✅ 사장 매장 미등록/코드입력 */}
+            <Stack.Screen name="OwnerEmpty" component={OwnerEmptyWorkplaceScreen} />
+            <Stack.Screen name="RegisterWorkplace" component={RegisterWorkplaceScreen} />
             {/* 공통 기능 */}
             <Stack.Screen name="Task" component={TaskScreen} />
             <Stack.Screen name="Notice" component={NoticeScreen} />

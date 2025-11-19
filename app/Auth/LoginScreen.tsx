@@ -78,7 +78,7 @@ export default function LoginScreen({ navigation }: any) {
                 navigation.replace("EmployeeNoWorkplace");
             } else {
                 // ✅ 그 외(사장님) → 사장님 탭
-                navigation.replace("OwnerTabs");
+                navigation.replace("OwnerEmpty");
             }
 
         } catch (error) {

@@ -10,29 +10,33 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+import API from "@/api/axios";
 
 export default function FindAccountScreen({ navigation }: any) {
     const [tab, setTab] = useState<"id" | "password">("id");
 
-    // 상태
+    // 아이디 찾기 상태 관리
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
-    const [email, setEmail] = useState("");
-    const [userId, setUserId] = useState("");
+    const [findIdEmail, setFindIdEmail] = useState("");
 
+    // 비밀번호 찾기 상태 관리
+    const [userId, setUserId] = useState("");
+    const [findPwEmail, setFindPwEmail] = useState("");
+
+    // 아이디 찾기
     const handleFindId = async () => {
-        if (!name || !phone || !email) {
-            return Alert.alert("입력 오류", "모든 항목을 입력해주세요.");
+        if (name.trim() === "" || phone.trim() === "" || findIdEmail.trim() === "") {
+            Alert.alert("입력 오류", "모든 항목을 입력해주세요.");
+            return;
         }
 
         try {
             const response = await axios.post("http://10.0.2.2:8081/member/findid", {
-                name: name,
-                email: email,
-                phoneNumber: phone,
+                name: name.trim(),
+                email: findIdEmail.trim(),
+                phoneNumber: phone.trim(),
             });
-
-            console.log("서버 응답:", response.data);
 
             const data = response.data;
 
@@ -41,14 +45,38 @@ export default function FindAccountScreen({ navigation }: any) {
             } else {
                 Alert.alert("조회 실패", "회원 정보를 찾을 수 없습니다.");
             }
-        } catch (error: any) {
-            console.error("아이디 찾기 오류:", error.response?.data || error.message);
-            Alert.alert("조회 실패", error.response?.data || "회원 정보를 찾을 수 없습니다.");
+        } catch (error) {
+            Alert.alert("조회 실패", "회원 정보를 찾을 수 없습니다.");
         }
     };
 
-    const handleFindPassword = () => {
-        navigation.navigate("FindPasswordResult", { email });
+    // 비밀번호 찾기
+    const handleFindPassword = async () => {
+        if (userId.trim() === "" || findPwEmail.trim() === "") {
+            Alert.alert("입력 오류", "아이디와 이메일을 모두 입력해주세요.");
+            return;
+        }
+        // ★ 여기 로그 추가
+        console.log("보내는 userId = [" + userId.trim() + "]");
+        console.log("보내는 email = [" + findPwEmail.trim() + "]");
+
+        try {
+            const res = await API.post("/member/check-password-user", {
+                userId: userId.trim(),
+                email: findPwEmail.trim(),
+            });
+
+            if (res.data.valid) {
+                navigation.navigate("FindPasswordResult", {
+                    userId: userId.trim(),
+                    email: findPwEmail.trim(),
+                });
+            } else {
+                Alert.alert("오류", "아이디 또는 이메일이 일치하지 않습니다.");
+            }
+        } catch (err) {
+            Alert.alert("오류", "아이디 또는 이메일이 일치하지 않습니다.");
+        }
     };
 
     return (
@@ -67,8 +95,11 @@ export default function FindAccountScreen({ navigation }: any) {
                     style={[s.tabButton, tab === "id" && s.tabActive]}
                     onPress={() => setTab("id")}
                 >
-                    <Text style={[s.tabText, tab === "id" && s.tabTextActive]}>아이디 찾기</Text>
+                    <Text style={[s.tabText, tab === "id" && s.tabTextActive]}>
+                        아이디 찾기
+                    </Text>
                 </Pressable>
+
                 <Pressable
                     style={[s.tabButton, tab === "password" && s.tabActive]}
                     onPress={() => setTab("password")}
@@ -79,7 +110,7 @@ export default function FindAccountScreen({ navigation }: any) {
                 </Pressable>
             </View>
 
-            {/* 아이디 찾기 폼 */}
+            {/* 아이디 찾기 UI */}
             {tab === "id" && (
                 <View>
                     <TextInput
@@ -98,8 +129,8 @@ export default function FindAccountScreen({ navigation }: any) {
                     <TextInput
                         style={s.input}
                         placeholder="이메일"
-                        value={email}
-                        onChangeText={setEmail}
+                        value={findIdEmail}
+                        onChangeText={setFindIdEmail}
                         keyboardType="email-address"
                     />
 
@@ -109,7 +140,7 @@ export default function FindAccountScreen({ navigation }: any) {
                 </View>
             )}
 
-            {/* 비밀번호 찾기 폼 */}
+            {/* 비밀번호 찾기 UI */}
             {tab === "password" && (
                 <View>
                     <TextInput
@@ -121,8 +152,8 @@ export default function FindAccountScreen({ navigation }: any) {
                     <TextInput
                         style={s.input}
                         placeholder="이메일"
-                        value={email}
-                        onChangeText={setEmail}
+                        value={findPwEmail}
+                        onChangeText={setFindPwEmail}
                         keyboardType="email-address"
                     />
 

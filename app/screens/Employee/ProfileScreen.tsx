@@ -105,10 +105,14 @@ export default function ProfileScreen({ navigation }: any) {
 
             {/* 메뉴 */}
             <View style={s.menuContainer}>
-                <TouchableOpacity style={s.menuItem}>
+                <TouchableOpacity
+                    style={s.menuItem}
+                    onPress={() => navigation.navigate("ProfileEdit")}   // ← 여기만 추가!
+                >
                     <Ionicons name="person-circle-outline" size={20} color="#007AFF" />
                     <Text style={s.menuText}>프로필 관리</Text>
                 </TouchableOpacity>
+
 
                 {user.isLoggedIn && (
                     <TouchableOpacity style={s.menuItem} onPress={handleLogout}>

@@ -36,6 +36,10 @@ import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay"
 import NoWorkplaceScreen from "../screens/Employee/NoWorkplaceScreen";
 import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 
+//공통 화면
+import ProfileEditScreen from "../screens/Common/ProfileEditScreen";
+
+
 // ----------------------------------------------------
 // 네비게이션 타입 정의
 // ----------------------------------------------------
@@ -52,8 +56,12 @@ export type RootStackParamList = {
 
     // 홈 (탭 네비게이터)
     // ⚠️ Root에선 컨테이너 이름을 그대로 사용(외부 코드 호환), 내부 탭의 홈 화면 이름만 바꿔서 중복 제거
-    EmployeeHome: undefined;
-    OwnerHome: undefined;
+    EmployeeTabs: undefined;
+    OwnerTabs: undefined;
+
+    nowork: undefined;
+    workjo: undefined;
+
 
     // ✅ 알바생 매장 미등록/코드입력
     EmployeeNoWorkplace: undefined;
@@ -65,6 +73,7 @@ export type RootStackParamList = {
     Chat: undefined;
     Profile: undefined;
     Schedule: undefined;
+    ProfileEdit: undefined;
 
     // 사장님 전용 화면
     EmployeeManage: undefined;
@@ -91,6 +100,10 @@ export default function RootNavigator() {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
 
+            <Stack.Screen name="nowork" component={NoWorkplaceScreen} />
+            <Stack.Screen name="workjo" component={WorkplaceJoinScreen} />
+
+
             {/* 아이디 / 비밀번호 찾기 */}
             <Stack.Screen name="FindId" component={FindIdScreen} />
             <Stack.Screen name="FindIdResult" component={FindIdResultScreen} />
@@ -109,6 +122,8 @@ export default function RootNavigator() {
             {/* 공통 기능 */}
             <Stack.Screen name="Task" component={TaskScreen} />
             <Stack.Screen name="Notice" component={NoticeScreen} />
+            <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+
 
             {/* 사장님 전용 */}
             <Stack.Screen name="EmployeeManage" component={EmployeeManageScreen} />

@@ -52,8 +52,8 @@ export type RootStackParamList = {
 
     // 홈 (탭 네비게이터)
     // ⚠️ Root에선 컨테이너 이름을 그대로 사용(외부 코드 호환), 내부 탭의 홈 화면 이름만 바꿔서 중복 제거
-    EmployeeHome: undefined;
-    OwnerHome: undefined;
+    EmployeeTabs: undefined;
+    OwnerTabs: undefined;
 
     // ✅ 알바생 매장 미등록/코드입력
     EmployeeNoWorkplace: undefined;

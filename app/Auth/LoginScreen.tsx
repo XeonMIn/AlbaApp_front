@@ -62,9 +62,9 @@ export default function LoginScreen({ navigation }: any) {
             );
 
             if (data.role.toLowerCase() === "employee") {
-                navigation.replace("EmployeeHome");
+                navigation.replace("EmployeeNoWorkplace");
             } else {
-                navigation.replace("OwnerHome");
+                navigation.replace("OwnerTabs");
             }
         } catch (error) {
             console.log(error);

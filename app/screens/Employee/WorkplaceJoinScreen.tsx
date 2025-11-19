@@ -19,7 +19,7 @@ export default function WorkplaceJoinScreen({ navigation }: any) {
             navigation.goBack();
         } else {
             // 스택이 없을 때를 대비한 fallback
-            navigation.navigate("Login");
+            navigation.navigate("EmployeeNoWorkplace");
         }
     };
 

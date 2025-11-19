@@ -99,8 +99,8 @@ export default function RootNavigator() {
             <Stack.Screen name="FindAccount" component={FindAccountScreen} />
 
             {/* 홈 (탭 네비게이터) */}
-            <Stack.Screen name="EmployeeHome" component={EmployeeTabNavigator} />
-            <Stack.Screen name="OwnerHome" component={OwnerTabNavigator} />
+            <Stack.Screen name="OwnerTabs" component={OwnerTabNavigator} />
+            <Stack.Screen name="EmployeeTabs" component={EmployeeTabNavigator} />
 
             {/* ✅ 알바생 매장 미등록/코드입력 */}
             <Stack.Screen name="EmployeeNoWorkplace" component={NoWorkplaceScreen} />

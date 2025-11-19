@@ -37,9 +37,9 @@ export default function AutoLoginScreen() {
                 );
 
                 if (res.data.role === "ALBA") {
-                    navigation.replace("EmployeeHome");
+                    navigation.replace("OwnerTabs");
                 } else {
-                    navigation.replace("OwnerHome");
+                    navigation.replace("EmployeeTabs");
                 }
 
 

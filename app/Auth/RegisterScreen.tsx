@@ -141,16 +141,6 @@ export default function RegisterScreen() {
                 keyboardType="phone-pad"
             />
 
-            {/* 사장님 전용 입력 필드 */}
-            {userType === "owner" && (
-                <TextInput
-                    placeholder="사업자 등록번호"
-                    style={s.input}
-                    value={businessLicense}
-                    onChangeText={setBusinessLicense}
-                />
-            )}
-
             {/* 회원가입 버튼 */}
             <TouchableOpacity
                 style={[s.button, loading && { opacity: 0.6 }]}

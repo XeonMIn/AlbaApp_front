@@ -1,13 +1,39 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
-// @ts-ignore
-import type { RootState } from "@/store";
+import { useIsFocused } from "@react-navigation/native";
+import type { RootState } from "@/store/store";
+import { getWorkplaceDetail, WorkplaceResponse } from "@/api/workplace.api";
 
 export default function OwnerHomeScreen({ navigation }: any) {
     const user = useSelector((state: RootState) => state.user);
+    const isFocused = useIsFocused();
+
+    const [repWp, setRepWp] = useState<Pick<WorkplaceResponse, "name" | "address"> | null>(null);
+    const [loadingRep, setLoadingRep] = useState(false);
+
+    // 대표 매장 이름/주소 로드 (화면 복귀/대표 변경 시 갱신)
+    useEffect(() => {
+        const fetchRep = async () => {
+            if (!user.workplaceId) {
+                setRepWp(null);
+                return;
+            }
+            try {
+                setLoadingRep(true);
+                const w = await getWorkplaceDetail(user.workplaceId);
+                setRepWp({ name: w.name, address: w.address });
+            } catch {
+                setRepWp(null);
+            } finally {
+                setLoadingRep(false);
+            }
+        };
+        fetchRep();
+    }, [user.workplaceId, isFocused]);
+
     return (
         <SafeAreaView style={s.container}>
             {/* 상단 헤더 */}
@@ -18,15 +44,14 @@ export default function OwnerHomeScreen({ navigation }: any) {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 100 }}
-            >
-                {/* 매장 정보 */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+                {/* 매장 정보 (대표 매장 이름/주소 표시) */}
                 <TouchableOpacity style={s.card} onPress={() => navigation.navigate("WorkplaceInfo")}>
                     <Text style={s.cardTitle}>📍 내 매장</Text>
-                    <Text style={s.cardMain}>스마트커피 홍대점</Text>
-                    <Text style={s.cardSub}>서울 마포구 양화로 45길 12</Text>
+                    <Text style={s.cardMain}>
+                        {loadingRep ? "불러오는 중..." : repWp?.name ?? "대표 매장을 선택해주세요"}
+                    </Text>
+                    <Text style={s.cardSub}>{loadingRep ? "" : repWp?.address ?? ""}</Text>
                 </TouchableOpacity>
 
                 {/* 요약 정보 (직원 수 / 출근 인원) */}
@@ -47,12 +72,8 @@ export default function OwnerHomeScreen({ navigation }: any) {
                     </View>
                 </View>
 
-                {/* ✅ 급여 관리 카드 추가 */}
-                <TouchableOpacity
-                    style={s.payCard}
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate("PayManage")}
-                >
+                {/* 급여 관리 */}
+                <TouchableOpacity style={s.payCard} activeOpacity={0.8} onPress={() => navigation.navigate("PayManage")}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <Ionicons name="cash-outline" size={26} color="#007AFF" />
                         <Text style={s.payTitle}>급여 관리</Text>
@@ -60,12 +81,8 @@ export default function OwnerHomeScreen({ navigation }: any) {
                     <Ionicons name="chevron-forward" size={22} color="#aaa" />
                 </TouchableOpacity>
 
-                {/* ✅ 업무 관리 카드 */}
-                <TouchableOpacity
-                    style={s.taskCard}
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate("OwnerTask")}
-                >
+                {/* 업무 관리 */}
+                <TouchableOpacity style={s.taskCard} activeOpacity={0.8} onPress={() => navigation.navigate("OwnerTask")}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <Ionicons name="clipboard-outline" size={24} color="#007AFF" />
                         <Text style={s.taskTitle}>업무 관리</Text>
@@ -76,30 +93,20 @@ export default function OwnerHomeScreen({ navigation }: any) {
                 {/* 근무 일정 */}
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>🗓️ 오늘 근무 일정</Text>
-                    <TouchableOpacity
-                        style={s.sectionCard}
-                        onPress={() => navigation.navigate("OwnerSchedule")}
-                    >
+                    <TouchableOpacity style={s.sectionCard} onPress={() => navigation.navigate("OwnerSchedule")}>
                         <Text style={s.cardText}>오전 9시 ~ 오후 6시</Text>
                         <Text style={s.cardSubText}>직원 5명 근무 중</Text>
                     </TouchableOpacity>
                 </View>
 
-
                 {/* 공지사항 */}
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>📢 최근 공지사항</Text>
-                    <TouchableOpacity
-                        style={s.noticeCard}
-                        onPress={() => navigation.navigate("OwnerNotice")}
-                    >
+                    <TouchableOpacity style={s.noticeCard} onPress={() => navigation.navigate("OwnerNotice")}>
                         <Ionicons name="alert-circle" size={18} color="red" />
                         <Text style={s.noticeText}>이번 주 주말 휴무 안내</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={s.noticeCard}
-                        onPress={() => navigation.navigate("OwnerNotice")}
-                    >
+                    <TouchableOpacity style={s.noticeCard} onPress={() => navigation.navigate("OwnerNotice")}>
                         <Ionicons name="megaphone-outline" size={18} color="#007AFF" />
                         <Text style={s.noticeText}>11월 유니폼 변경 공지</Text>
                     </TouchableOpacity>
@@ -144,7 +151,6 @@ const s = StyleSheet.create({
     infoLabel: { color: "#fff", marginTop: 6, fontSize: 14 },
     infoValue: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 
-    // ✅ 급여 관리 카드 스타일
     payCard: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -160,12 +166,7 @@ const s = StyleSheet.create({
 
     section: { marginHorizontal: 16, marginTop: 24 },
     sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
-    sectionCard: {
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 14,
-        elevation: 2,
-    },
+    sectionCard: { backgroundColor: "#fff", borderRadius: 12, padding: 14, elevation: 2 },
     cardText: { fontSize: 15, fontWeight: "600" },
     cardSubText: { color: "#555", marginTop: 4, fontSize: 13 },
 
@@ -192,5 +193,4 @@ const s = StyleSheet.create({
         elevation: 2,
     },
     taskTitle: { fontSize: 16, fontWeight: "bold", color: "#111", marginLeft: 8 },
-
 });

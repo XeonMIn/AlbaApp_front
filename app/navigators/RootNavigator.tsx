@@ -28,6 +28,8 @@ import NoticeScreen from "../screens/Employee/NoticeScreen";
 import EmployeeManageScreen from "../screens/Owner/EmployeeManageScreen";
 import WorkplaceInfoScreen from "../screens/Owner/WorkplaceInfoScreen";
 import OwnerTaskScreen from "../screens/Owner/OwnerTaskScreen";
+import ProfileEditScreen from "../screens/Common/ProfileEditScreen";
+
 
 // 급여 관련 화면
 import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay";
@@ -61,6 +63,7 @@ export type RootStackParamList = {
     // ✅ 알바생 매장 미등록/코드입력
     EmployeeNoWorkplace: undefined;
     WorkplaceJoin: undefined;
+
     // ✅ 사장 매장 미등록/코드입력
     OwnerEmpty: undefined;
     RegisterWorkplace: undefined;
@@ -72,6 +75,9 @@ export type RootStackParamList = {
     Profile: undefined;
     Schedule: undefined;
     WorkplaceEdit: undefined;
+    ProfileEdit: undefined;
+
+
     // 사장님 전용 화면
     EmployeeManage: undefined;
     PayManage: undefined;
@@ -104,6 +110,7 @@ export default function RootNavigator() {
             <Stack.Screen name="FindPasswordResult" component={FindPasswordResultScreen} />
             <Stack.Screen name="FindAccount" component={FindAccountScreen} />
             <Stack.Screen name="WorkplaceEdit" component={WorkplaceEditScreen} />
+
             {/* 홈 (탭 네비게이터) */}
             <Stack.Screen name="OwnerTabs" component={OwnerTabNavigator} />
             <Stack.Screen name="EmployeeTabs" component={EmployeeTabNavigator} />
@@ -111,12 +118,16 @@ export default function RootNavigator() {
             {/* ✅ 알바생 매장 미등록/코드입력 */}
             <Stack.Screen name="EmployeeNoWorkplace" component={NoWorkplaceScreen} />
             <Stack.Screen name="WorkplaceJoin" component={WorkplaceJoinScreen} />
+
             {/* ✅ 사장 매장 미등록/코드입력 */}
             <Stack.Screen name="OwnerEmpty" component={OwnerEmptyWorkplaceScreen} />
             <Stack.Screen name="RegisterWorkplace" component={RegisterWorkplaceScreen} />
+
             {/* 공통 기능 */}
             <Stack.Screen name="Task" component={TaskScreen} />
             <Stack.Screen name="Notice" component={NoticeScreen} />
+            <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+
 
             {/* 사장님 전용 */}
             <Stack.Screen name="EmployeeManage" component={EmployeeManageScreen} />

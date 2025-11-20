@@ -19,7 +19,7 @@ import {
     updateSchedule,
     deleteSchedule,
     BackendSchedule,
-} from "../../../api/schedule";
+} from "@/api/schedule";
 
 
 
@@ -60,10 +60,14 @@ export default function ScheduleScreen() {
             const dayOfWeek = getDayOfWeek(dateString);
 
             try {
+                console.log("요청 URL:", `/schedules/workplace/${workplaceId}/day/${dayOfWeek}`);
+
                 const backendList = await getSchedulesByWorkplaceAndDay(
                     workplaceId,
                     dayOfWeek
                 );
+
+                console.log("백엔드 응답:", backendList);
 
                 setSchedules((prev) => ({
                     ...prev,
@@ -78,6 +82,7 @@ export default function ScheduleScreen() {
         },
         [workplaceId]
     );
+
 
 
     const handleAddPress = () => {

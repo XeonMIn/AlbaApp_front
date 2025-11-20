@@ -5,15 +5,17 @@ import { Ionicons } from "@expo/vector-icons";
 // 알바생 관련 화면들
 import EmployeeHomeScreen from "../screens/Employee/EmployeeHomeScreen";
 import ScheduleScreen from "../screens/Employee/ScheduleScreen";
-import ChatScreen from "../screens/Employee/ChatScreen";
 import ProfileScreen from "../screens/Employee/ProfileScreen";
+
+// ✅ 채팅은 스택 내비게이터(목록 → 방)로 교체
+import ChatNavigator from "./ChatNavigator";
 
 const Tab = createBottomTabNavigator();
 
 /**
  * ⚙️ 변경 포인트(중복 경고 제거):
- * - 탭 내부의 홈 스크린 name을 "EmployeeHome" → "EmployeeHomeMain" 으로 변경
- * - Root 스택의 컨테이너는 여전히 "EmployeeHome" 이므로 외부 네비게이션 코드는 그대로 동작
+ * - 탭 내부의 홈 스크린 name을 "EmployeeHome" → "EmployeeHomeMain" 으로 유지
+ * - 외부에서 "EmployeeHome"으로 네비게이션해도 컨테이너는 그대로라 동작 영향 없음
  */
 export default function EmployeeTabNavigator() {
     return (
@@ -45,7 +47,6 @@ export default function EmployeeTabNavigator() {
                 tabBarLabelStyle: { fontSize: 12, fontWeight: "bold" },
             })}
         >
-            {/* ✅ 이름만 바꿨습니다. (기능 동일) */}
             <Tab.Screen
                 name="EmployeeHomeMain"
                 component={EmployeeHomeScreen}
@@ -56,9 +57,10 @@ export default function EmployeeTabNavigator() {
                 component={ScheduleScreen}
                 options={{ tabBarLabel: "일정", title: "일정" }}
             />
+            {/* ✅ 채팅 탭을 ChatNavigator로 교체 */}
             <Tab.Screen
                 name="Chat"
-                component={ChatScreen}
+                component={ChatNavigator}
                 options={{ tabBarLabel: "채팅", title: "채팅" }}
             />
             <Tab.Screen

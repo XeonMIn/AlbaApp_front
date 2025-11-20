@@ -11,6 +11,9 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useDispatch, useSelector } from "react-redux";
+import { setUser } from "@/store/userSlice";
+import { RootState } from "@/store/store";
 import API from "@/api/axios";
 
 type RootStackParamList = {
@@ -30,6 +33,10 @@ interface WorkplaceForm {
 export default function RegisterWorkplaceScreen() {
     const navigation =
         useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+    const dispatch = useDispatch();
+    // 기존 토큰/유저 정보 유지용 (setUser 호출 시 accessToken이 지워지지 않게)
+    const currentUser = useSelector((state: RootState) => state.user);
 
     const [workplace, setWorkplace] = useState<WorkplaceForm>({
         name: "",
@@ -56,15 +63,40 @@ export default function RegisterWorkplaceScreen() {
         }
 
         try {
+            // 1) 매장 등록
             await API.post("/workplace/add", workplace);
 
+            // 2) 등록 직후 내 정보 재조회 → workplaceId / workplaceName 즉시 반영
+            const meRes = await API.get("/member/me");
+            const data = meRes.data;
+
+            const upperRole = (data.role ?? "").toString().toUpperCase();
+
+            // 🔥 Redux 업데이트: accessToken은 기존 값 유지(또는 currentUser.accessToken로 보존)
+            dispatch(
+                setUser({
+                    id: data.id,
+                    userId: data.userId,
+                    name: data.name,
+                    role: upperRole,
+                    email: data.email,
+                    phoneNumber: data.phoneNumber,
+                    accessToken: currentUser.accessToken, // 기존 토큰 유지
+                    workplaceId:
+                        data.workplaceId !== undefined ? data.workplaceId : currentUser.workplaceId,
+                    workplaceName:
+                        data.workplaceName !== undefined ? data.workplaceName : currentUser.workplaceName,
+                } as any)
+            );
+
+            // 3) 알림 후 사장 탭으로 리셋 (이미 Redux가 갱신되어 즉시 반영됨)
             Alert.alert("성공", "근무지가 등록되었습니다.", [
                 {
                     text: "확인",
                     onPress: () =>
                         navigation.reset({
                             index: 0,
-                            routes: [{ name: "OwnerTabs" }], // ✅ 사장 탭으로 스택 리셋
+                            routes: [{ name: "OwnerTabs" }],
                         }),
                 },
             ]);

@@ -38,8 +38,13 @@ export default function ProfileScreen({ navigation }: any) {
                     userId: res.data.userId,
                     name: res.data.name,
                     role: res.data.role?.toUpperCase(),
+                    email: res.data.email,
+                    phoneNumber: res.data.phoneNumber,
                     accessToken: user.accessToken,
-                })
+                    // 🔥 기존 Redux에 있던 매장 정보는 유지
+                    workplaceId: user.workplaceId,
+                    workplaceName: user.workplaceName,
+                } as any)
             );
         } catch (err) {
             console.error("프로필 조회 실패:", err);

@@ -6,23 +6,13 @@ import {
     Pressable,
     StyleSheet,
     Alert,
+    ActivityIndicator,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { loginRequest } from "@/api/auth.api";
 import { useDispatch } from "react-redux";
 import { setUser } from "@/store/userSlice";
-
-type LoginResponse = {
-    id: number;
-    userId: string;
-    name: string;
-    email?: string | null;
-    phoneNumber?: string | null;
-    role: string; // "ALBA" | "CEO" | "OWNER" | ...
-    accessToken: string;
-    workplaceId?: number | null;
-    workplaceName?: string | null;
-};
+import { loginRequest } from "@/api/auth.api";
+import API from "@/api/axios";
 
 export default function LoginScreen({ navigation }: any) {
     const [userId, setUserId] = useState("");
@@ -31,7 +21,7 @@ export default function LoginScreen({ navigation }: any) {
     const dispatch = useDispatch();
 
     const handleLogin = async () => {
-        if (!userId || !password) {
+        if (!userId.trim() || !password.trim()) {
             Alert.alert("입력 오류", "아이디와 비밀번호를 입력해주세요.");
             return;
         }
@@ -39,58 +29,52 @@ export default function LoginScreen({ navigation }: any) {
         try {
             setLoading(true);
 
-            // 🔐 백엔드 로그인
-            const data = (await loginRequest(userId, password)) as LoginResponse;
+            // 1) 로그인 → 토큰 수령
+            const loginRes = await loginRequest(userId, password);
+            const token: string = (loginRes as any)?.accessToken;
+            if (!token) throw new Error("토큰이 없습니다.");
 
-            // 토큰 저장(자동로그인용)
-            await SecureStore.setItemAsync("accessToken", data.accessToken);
+            // 2) 토큰 저장(대기까지 보장)
+            await SecureStore.setItemAsync("accessToken", token);
 
-            // 역할 정규화
-            const rawRole = (data.role ?? "").toString();
-            const upperRole = rawRole.toUpperCase(); // "ALBA" | "CEO" | "OWNER" | ...
+            // 3) 내 정보 재조회(항상 최신, 이 호출에 토큰 직접 첨부해서 레이스 방지)
+            const meRes = await API.get("/member/me", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const me = meRes.data;
 
-            const isOwner =
-                upperRole === "CEO" || upperRole === "OWNER" || upperRole === "BOSS";
-            const isEmployee =
-                upperRole === "ALBA" ||
-                upperRole === "EMPLOYEE" ||
-                rawRole.toLowerCase() === "employee";
+            const role = String(me.role ?? "").toUpperCase();
+            const hasWorkplace = me.workplaceId !== null && me.workplaceId !== undefined;
 
-            // 매장 보유 여부
-            const hasWorkplace =
-                data.workplaceId !== null && data.workplaceId !== undefined;
-
-            // ✅ Redux 저장 (isLoggedIn은 리듀서 내부에서 true로 세팅됨!)
+            // 4) Redux 저장 (workplace 즉시 반영)
             dispatch(
                 setUser({
-                    id: data.id,
-                    userId: data.userId,
-                    name: data.name,
-                    role: upperRole,
-                    email: data.email ?? null,
-                    phoneNumber: data.phoneNumber ?? null,
-                    accessToken: data.accessToken,
-                })
+                    id: me.id,
+                    userId: me.userId,
+                    name: me.name,
+                    role,
+                    email: me.email ?? null,
+                    phoneNumber: me.phoneNumber ?? null,
+                    accessToken: token,
+                    workplaceId: hasWorkplace ? me.workplaceId : null,
+                    workplaceName: hasWorkplace ? me.workplaceName : null,
+                } as any)
             );
 
-            Alert.alert("로그인 성공", `${data.name}님 환영합니다!`);
-
-            // 네비게이션 분기 (대칭 처리)
-            if (isOwner && hasWorkplace) {
-                navigation.reset({ index: 0, routes: [{ name: "OwnerTabs" }] });
-            } else if (isOwner && !hasWorkplace) {
-                navigation.replace("OwnerEmpty"); // 또는 "OwnerEmpty"
-            } else if (isEmployee && hasWorkplace) {
+            // 5) 네비게이션 분기(RESET로 화면 스택 초기화)
+            if ((role === "ALBA" || role === "EMPLOYEE") && hasWorkplace) {
                 navigation.reset({ index: 0, routes: [{ name: "EmployeeTabs" }] });
+            } else if (role === "ALBA" || role === "EMPLOYEE") {
+                navigation.reset({ index: 0, routes: [{ name: "EmployeeNoWorkplace" }] });
+            } else if (hasWorkplace) {
+                navigation.reset({ index: 0, routes: [{ name: "OwnerTabs" }] });
             } else {
-                navigation.replace("EmployeeNoWorkplace");
+                navigation.reset({ index: 0, routes: [{ name: "OwnerEmpty" }] });
             }
-        } catch (error) {
-            console.log("로그인 에러:", error);
-            Alert.alert("로그인 실패", "아이디 또는 비밀번호를 확인해주세요.");
-            try {
-                await SecureStore.deleteItemAsync("accessToken");
-            } catch {}
+        } catch (err: any) {
+            console.log("로그인 실패:", err?.response?.data || err?.message);
+            Alert.alert("로그인 실패", err?.response?.data?.message || "아이디/비밀번호를 확인하세요.");
+            try { await SecureStore.deleteItemAsync("accessToken"); } catch {}
         } finally {
             setLoading(false);
         }
@@ -120,14 +104,8 @@ export default function LoginScreen({ navigation }: any) {
                 editable={!loading}
             />
 
-            <Pressable
-                style={[s.loginButton, loading && { opacity: 0.5 }]}
-                onPress={handleLogin}
-                disabled={loading}
-            >
-                <Text style={s.loginButtonText}>
-                    {loading ? "로그인 중..." : "로그인"}
-                </Text>
+            <Pressable style={[s.loginButton, loading && { opacity: 0.5 }]} onPress={handleLogin} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.loginButtonText}>로그인</Text>}
             </Pressable>
 
             <View style={s.linkRow}>
@@ -143,28 +121,10 @@ export default function LoginScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: "center",
-        padding: 20,
-        backgroundColor: "#fff",
-    },
+    container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
     title: { fontSize: 26, fontWeight: "bold", marginBottom: 30, textAlign: "center" },
-    input: {
-        borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: 10,
-        padding: 14,
-        marginBottom: 12,
-        backgroundColor: "#f9f9f9",
-    },
-    loginButton: {
-        backgroundColor: "#111",
-        padding: 16,
-        borderRadius: 10,
-        alignItems: "center",
-        marginVertical: 10,
-    },
+    input: { borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 14, marginBottom: 12, backgroundColor: "#f9f9f9" },
+    loginButton: { backgroundColor: "#111", padding: 16, borderRadius: 10, alignItems: "center", marginVertical: 10 },
     loginButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
     linkRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
     linkText: { color: "#6c757d", fontSize: 14 },

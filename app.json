@@ -3,9 +3,8 @@
     "name": "AlbaApp",
     "slug": "AlbaApp",
     "extra": {
-      "API_BASE_URL": "http://10.0.2.2:8082",
-      "API_BASE_URL": "http://10.0.2.2:8082",
-      "WS_BASE_URL": "ws://10.0.2.2:8082",
+      "API_BASE_URL": "http://10.0.2.2:8081",
+      "WS_BASE_URL": "ws://10.0.2.2:8081",
       "STOMP_ENDPOINT": "/stomp/chat"
     },
     "version": "1.0.0",
@@ -14,9 +13,7 @@
     "scheme": "albaapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
+    "ios": { "supportsTablet": true },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -28,11 +25,10 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
       [
         "expo-splash-screen",
         {
@@ -40,15 +36,9 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "dark": { "backgroundColor": "#000000" }
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
+    ]
   }
 }

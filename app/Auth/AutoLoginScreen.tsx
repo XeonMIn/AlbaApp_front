@@ -11,45 +11,54 @@ export default function AutoLoginScreen() {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const checkToken = async () => {
-            const token = await SecureStore.getItemAsync("accessToken");
-
-
-            if (!token) {
-                return navigation.replace("Login");
-            }
-
+        const run = async () => {
             try {
-                // /member/me 로 사용자 정보 조회 (필수)
-                const res = await API.get("/member/me");
-                console.log("자동 로그인 응답:", res.data);
+                const token = await SecureStore.getItemAsync("accessToken");
+                if (!token) {
+                    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+                    return;
+                }
 
+                // 토큰 명시 첨부(간헐적 레이스 방지)
+                const res = await API.get("/member/me", {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = res.data;
 
+                const role = String(data.role ?? "").toUpperCase();
+                const hasWorkplace = data.workplaceId !== null && data.workplaceId !== undefined;
 
                 dispatch(
                     setUser({
-                        id: res.data.id,
-                        userId: res.data.userId,
-                        name: res.data.name,
-                        role: res.data.role,
+                        id: data.id,
+                        userId: data.userId,
+                        name: data.name,
+                        role,
+                        email: data.email,
+                        phoneNumber: data.phoneNumber,
                         accessToken: token,
-                    })
+                        workplaceId: hasWorkplace ? data.workplaceId : null,
+                        workplaceName: hasWorkplace ? data.workplaceName : null,
+                    } as any)
                 );
 
-                if (res.data.role === "ALBA") {
-                    navigation.replace("OwnerTabs");
+                if ((role === "ALBA" || role === "EMPLOYEE") && hasWorkplace) {
+                    navigation.reset({ index: 0, routes: [{ name: "EmployeeTabs" }] });
+                } else if (role === "ALBA" || role === "EMPLOYEE") {
+                    navigation.reset({ index: 0, routes: [{ name: "EmployeeNoWorkplace" }] });
+                } else if (hasWorkplace) {
+                    navigation.reset({ index: 0, routes: [{ name: "OwnerTabs" }] });
                 } else {
-                    navigation.replace("EmployeeTabs");
+                    navigation.reset({ index: 0, routes: [{ name: "OwnerEmpty" }] });
                 }
-
-
             } catch (err) {
-                console.log("자동 로그인 실패:", err);
-                navigation.replace("Login");
+                // 만료/오류 → 토큰 삭제 후 로그인 화면
+                try { await SecureStore.deleteItemAsync("accessToken"); } catch {}
+                navigation.reset({ index: 0, routes: [{ name: "Login" }] });
             }
         };
 
-        checkToken();
+        run();
     }, []);
 
     return (

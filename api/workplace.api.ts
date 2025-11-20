@@ -41,3 +41,13 @@ export async function updateWorkplace(
     const res = await API.put<string>(`/workplace/${id}`, body);
     return (res.data ?? "ok") as string;
 }
+
+/** ✅ 대표 매장 전환 */
+export async function selectMyWorkplace(workplaceId: number): Promise<void> {
+    await API.post(`/member/select-workplace/${workplaceId}`);
+}
+
+/** ✅ 매장 삭제 */
+export async function deleteWorkplace(workplaceId: number): Promise<void> {
+    await API.delete(`/workplace/${workplaceId}`);
+}

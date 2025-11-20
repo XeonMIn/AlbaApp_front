@@ -10,21 +10,23 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
-import { useIsFocused } from "@react-navigation/native"; // ✅ 추가
+import { useIsFocused } from "@react-navigation/native";
 import { RootState } from "@/store/store";
 import {
     getWorkplaceDetail,
     getWorkplaceEmployeesCount,
+    getMyWorkplaces,
     WorkplaceResponse,
 } from "@/api/workplace.api";
 
 export default function WorkplaceInfoScreen({ navigation }: any) {
     const user = useSelector((state: RootState) => state.user);
     const workplaceId = user.workplaceId;
-    const isFocused = useIsFocused(); // ✅ 포커스 감지
+    const isFocused = useIsFocused();
 
     const [workplace, setWorkplace] = useState<WorkplaceResponse | null>(null);
     const [employeesCount, setEmployeesCount] = useState<number | null>(null);
+    const [otherWorkplaces, setOtherWorkplaces] = useState<WorkplaceResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,16 +35,23 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
             setError("등록된 매장이 없습니다. 먼저 매장을 등록해주세요.");
             setWorkplace(null);
             setEmployeesCount(null);
+            setOtherWorkplaces([]);
             setLoading(false);
             return;
         }
         try {
             setLoading(true);
             setError(null);
-            const detail = await getWorkplaceDetail(workplaceId);
+
+            const [detail, count, mine] = await Promise.all([
+                getWorkplaceDetail(workplaceId),
+                getWorkplaceEmployeesCount(workplaceId),
+                getMyWorkplaces(),
+            ]);
+
             setWorkplace(detail);
-            const count = await getWorkplaceEmployeesCount(workplaceId);
             setEmployeesCount(count);
+            setOtherWorkplaces((mine || []).filter((w) => w.id !== workplaceId));
         } catch (e) {
             console.log("매장 정보 조회 실패:", e);
             setError("매장 정보를 불러오지 못했습니다.");
@@ -51,26 +60,15 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
         }
     }, [workplaceId]);
 
-    // ✅ workplaceId가 바뀌거나 화면이 다시 포커스될 때마다 재조회
     useEffect(() => {
-        if (isFocused) {
-            fetchAll();
-        }
+        if (isFocused) fetchAll();
     }, [isFocused, fetchAll]);
 
     // 로딩
     if (loading) {
         return (
             <SafeAreaView style={s.container}>
-                <View style={s.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Ionicons name="chevron-back" size={26} color="#111" />
-                    </TouchableOpacity>
-                    <Text style={s.headerTitle}>매장 정보</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate("RegisterWorkplace")}>
-                        <Ionicons name="add-outline" size={26} color="#007AFF" />
-                    </TouchableOpacity>
-                </View>
+                <Header navigation={navigation} />
                 <View style={s.centerBox}>
                     <ActivityIndicator size="large" />
                     <Text style={{ marginTop: 8 }}>매장 정보를 불러오는 중입니다…</Text>
@@ -83,16 +81,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
     if (error || !workplace) {
         return (
             <SafeAreaView style={s.container}>
-                <View style={s.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                        <Ionicons name="chevron-back" size={26} color="#111" />
-                    </TouchableOpacity>
-                    <Text style={s.headerTitle}>매장 정보</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate("RegisterWorkplace")}>
-                        <Ionicons name="add-outline" size={26} color="#007AFF" />
-                    </TouchableOpacity>
-                </View>
-
+                <Header navigation={navigation} />
                 <View style={s.centerBox}>
                     <Ionicons name="alert-circle-outline" size={40} color="#ff3b30" />
                     <Text style={{ marginTop: 10, fontSize: 15, color: "#333", textAlign: "center" }}>
@@ -109,48 +98,71 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
     // 정상
     return (
         <SafeAreaView style={s.container}>
-            <View style={s.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="chevron-back" size={26} color="#111" />
-                </TouchableOpacity>
-                <Text style={s.headerTitle}>매장 정보</Text>
-                <TouchableOpacity onPress={() => navigation.navigate("RegisterWorkplace")}>
-                    <Ionicons name="add-outline" size={26} color="#007AFF" />
-                </TouchableOpacity>
-            </View>
-
+            <Header navigation={navigation} />
             <ScrollView contentContainerStyle={s.scroll}>
+                {/* 대표 매장 카드 → 수정 화면으로 */}
                 <TouchableOpacity
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                     style={s.card}
-                    onPress={() => navigation.navigate("RegisterWorkplace", { mode: "edit", workplace })}
+                    onPress={() => navigation.navigate("WorkplaceEdit", { workplace })}
                 >
                     <Text style={s.storeName}>{workplace.name}</Text>
                     <Text style={s.address}>{workplace.address}</Text>
 
                     <View style={s.divider} />
-
-                    <View style={s.row}>
-                        <Text style={s.label}>사업자 번호</Text>
-                        <Text style={s.value}>{workplace.businessnumber}</Text>
-                    </View>
-                    <View style={s.row}>
-                        <Text style={s.label}>영업 시간</Text>
-                        <Text style={s.value}>{workplace.businesshour}</Text>
-                    </View>
-                    <View style={s.row}>
-                        <Text style={s.label}>매장 전화번호</Text>
-                        <Text style={s.value}>{workplace.contactphoneNumber}</Text>
-                    </View>
-                    {typeof employeesCount === "number" && (
-                        <View style={s.row}>
-                            <Text style={s.label}>직원 수</Text>
-                            <Text style={s.value}>{employeesCount}명</Text>
-                        </View>
-                    )}
+                    <Row label="사업자 번호" value={workplace.businessnumber} />
+                    <Row label="영업 시간" value={workplace.businesshour} />
+                    <Row label="매장 전화번호" value={workplace.contactphoneNumber} />
+                    {typeof employeesCount === "number" && <Row label="직원 수" value={`${employeesCount}명`} />}
                 </TouchableOpacity>
+
+                {/* 내 다른 매장 목록 */}
+                {otherWorkplaces.length > 0 && (
+                    <View style={s.sectionWrap}>
+                        <Text style={s.sectionTitle}>내 다른 매장</Text>
+                        {otherWorkplaces.map((w) => (
+                            <TouchableOpacity
+                                key={w.id}
+                                activeOpacity={0.85}
+                                style={s.card}
+                                onPress={() => navigation.navigate("WorkplaceEdit", { workplace: w })}
+                            >
+                                <Text style={s.storeName}>{w.name}</Text>
+                                <Text style={s.address}>{w.address}</Text>
+
+                                <View style={s.divider} />
+                                <Row label="사업자 번호" value={w.businessnumber} />
+                                <Row label="영업 시간" value={w.businesshour} />
+                                <Row label="매장 전화번호" value={w.contactphoneNumber} />
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </ScrollView>
         </SafeAreaView>
+    );
+}
+
+function Header({ navigation }: any) {
+    return (
+        <View style={s.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={26} color="#111" />
+            </TouchableOpacity>
+            <Text style={s.headerTitle}>매장 정보</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("RegisterWorkplace")}>
+                <Ionicons name="add-outline" size={26} color="#007AFF" />
+            </TouchableOpacity>
+        </View>
+    );
+}
+
+function Row({ label, value }: { label: string; value?: string | null }) {
+    return (
+        <View style={s.row}>
+            <Text style={s.label}>{label}</Text>
+            <Text style={s.value}>{value ?? "-"}</Text>
+        </View>
     );
 }
 
@@ -168,12 +180,7 @@ const s = StyleSheet.create({
     },
     headerTitle: { fontSize: 18, fontWeight: "600", color: "#111" },
     scroll: { padding: 16, paddingBottom: 32 },
-    centerBox: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingHorizontal: 24,
-    },
+    centerBox: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
     card: {
         backgroundColor: "#fff",
         borderRadius: 12,
@@ -193,4 +200,6 @@ const s = StyleSheet.create({
     value: { color: "#111", fontSize: 15, fontWeight: "500" },
     inlineLink: { marginTop: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: "#eef3ff" },
     inlineLinkText: { color: "#2e6bff", fontWeight: "700" },
+    sectionWrap: { marginTop: 8 },
+    sectionTitle: { fontSize: 16, fontWeight: "700", color: "#111", marginBottom: 8, paddingHorizontal: 2 },
 });

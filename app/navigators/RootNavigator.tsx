@@ -37,6 +37,7 @@ import NoWorkplaceScreen from "../screens/Employee/NoWorkplaceScreen";
 import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 import OwnerEmptyWorkplaceScreen from "@/app/screens/Owner/OwnerEmptyWorkplaceScreen";
 import RegisterWorkplaceScreen from "@/app/screens/Owner/RegisterWorkplaceScreen";
+import WorkplaceEditScreen from "@/app/screens/Owner/WorkplaceEditScreen";
 
 // ----------------------------------------------------
 // 네비게이션 타입 정의
@@ -70,7 +71,7 @@ export type RootStackParamList = {
     Chat: undefined;
     Profile: undefined;
     Schedule: undefined;
-
+    WorkplaceEdit: undefined;
     // 사장님 전용 화면
     EmployeeManage: undefined;
     PayManage: undefined;
@@ -102,7 +103,7 @@ export default function RootNavigator() {
             <Stack.Screen name="FindPassword" component={FindPasswordScreen} />
             <Stack.Screen name="FindPasswordResult" component={FindPasswordResultScreen} />
             <Stack.Screen name="FindAccount" component={FindAccountScreen} />
-
+            <Stack.Screen name="WorkplaceEdit" component={WorkplaceEditScreen} />
             {/* 홈 (탭 네비게이터) */}
             <Stack.Screen name="OwnerTabs" component={OwnerTabNavigator} />
             <Stack.Screen name="EmployeeTabs" component={EmployeeTabNavigator} />
@@ -126,6 +127,8 @@ export default function RootNavigator() {
             {/* 알바생 급여 관련 */}
             <Stack.Screen name="PayList" component={PayListScreen} />
             <Stack.Screen name="PayDetail" component={PayDetailScreen} />
+
+
         </Stack.Navigator>
     );
 }

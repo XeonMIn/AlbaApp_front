@@ -7,7 +7,7 @@ export interface BackendSchedule {
     dayOfWeek: string;   // "MONDAY" 같은 문자열
     startTime: string;   // "09:00:00"
     endTime: string;     // "13:00:00"
-    // title, memo 같은 게 DTO에 있으면 여기에 추가
+    title: string;
 }
 
 // 1) 특정 매장 + 특정 요일 스케줄 조회

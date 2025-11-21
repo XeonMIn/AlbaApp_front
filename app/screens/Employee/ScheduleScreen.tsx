@@ -117,6 +117,7 @@ export default function ScheduleScreen() {
 
         // 백엔드 DTO 형식 ("HH:mm:00")
         const dto = {
+            title,
             dayOfWeek,
             startTime: `${startStr}:00`,
             endTime: `${endStr}:00`,
@@ -206,7 +207,7 @@ export default function ScheduleScreen() {
 // 백엔드 스케줄을 화면에서 쓰는 ScheduleItem 형식으로 변환
     const toScheduleItem = (s: BackendSchedule): ScheduleItem => ({
         id: s.id,
-        title: "근무 스케줄", // DTO에 제목 있으면 s.title 같은 걸로 바꿔주면 됨
+        title: s.title, // DTO에 제목 있으면 s.title 같은 걸로 바꿔주면 됨
         start: s.startTime.slice(0, 5), // "09:00:00" -> "09:00"
         end: s.endTime.slice(0, 5),
         status: "예정",

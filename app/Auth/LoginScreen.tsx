@@ -26,6 +26,30 @@ export default function LoginScreen({ navigation }: any) {
             return;
         }
 
+        // ✔ 테스트 로그인 (백엔드 무시, 프론트 전용)
+        if (userId === "test" && password === "1234") {
+            dispatch(
+                setUser({
+                    id: 999,
+                    userId: "test",
+                    name: "테스트 유저",
+                    role: "EMPLOYEE", // OWNER로 바꾸면 사장 홈으로 이동됨
+                    email: "test@test.com",
+                    phoneNumber: "01000000000",
+                    accessToken: "dev-mode",
+                    workplaceId: 1,
+                    workplaceName: "테스트 매장",
+                })
+            );
+
+            navigation.reset({
+                index: 0,
+                routes: [{ name: "EmployeeTabs" }], // 사장 테스트면 OwnerTabs 로 변경
+            });
+            return;
+        }
+
+
         try {
             setLoading(true);
 

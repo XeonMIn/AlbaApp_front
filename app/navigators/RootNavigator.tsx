@@ -29,6 +29,7 @@ import EmployeeManageScreen from "../screens/Owner/EmployeeManageScreen";
 import WorkplaceInfoScreen from "../screens/Owner/WorkplaceInfoScreen";
 import OwnerTaskScreen from "../screens/Owner/OwnerTaskScreen";
 import ProfileEditScreen from "../screens/Common/ProfileEditScreen";
+import QRScannerScreen from "../screens/Employee/QRScannerScreen";
 
 
 // 급여 관련 화면
@@ -63,6 +64,7 @@ export type RootStackParamList = {
     // ✅ 알바생 매장 미등록/코드입력
     EmployeeNoWorkplace: undefined;
     WorkplaceJoin: undefined;
+    QRScanner: undefined;
 
     // ✅ 사장 매장 미등록/코드입력
     OwnerEmpty: undefined;
@@ -127,6 +129,8 @@ export default function RootNavigator() {
             <Stack.Screen name="Task" component={TaskScreen} />
             <Stack.Screen name="Notice" component={NoticeScreen} />
             <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+            <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ headerShown: false }} />
+
 
 
             {/* 사장님 전용 */}

@@ -1,136 +1,168 @@
-import { Client, IMessage, Versions } from "@stomp/stompjs";
-import Constants from "expo-constants";
+// app/utils/stompClient.ts
+import { Client, IMessage, StompSubscription } from "@stomp/stompjs";
 
-// RN 환경에서 WebSocket 클래스 안전 획득
-const RNWebSocket: any =
-    (global as any).WebSocket ||
-    (global as any).window?.WebSocket ||
-    (global as any).GLOBAL?.WebSocket ||
-    (global as any).self?.WebSocket;
+/** ===== 안전한 env ===== */
+const ENV: Record<string, string | undefined> =
+    (globalThis as any)?.process?.env ?? {};
+
+/** ===== WS URL 조립 (http→ws 보정) ===== */
+const RAW_BASE =
+    ENV.EXPO_PUBLIC_WS_BASE_URL ??
+    ENV.EXPO_PUBLIC_API_BASE_URL ??
+    "http://10.0.2.2:8081";
+
+const WS_BASE = RAW_BASE
+    .replace(/^https:\/\//i, "wss://")
+    .replace(/^http:\/\//i, "ws://")
+    .replace(/\/+$/, "");
+
+const ENDPOINT = "/ws/chat"; // 백엔드와 통일
 
 let client: Client | null = null;
+let connecting: Promise<void> | null = null;
 
-function parseHostFromWsBase(wsBase: string): string {
-    // ws://10.0.2.2:8081 -> 10.0.2.2:8081
-    try {
-        const u = new URL(wsBase.replace(/^ws/, "http"));
-        return u.host || "localhost";
-    } catch {
-        return "localhost";
-    }
+type Unsub = () => void;
+export type Unsubscribe = Unsub;
+
+type ResubRecord = {
+    destination: string;
+    callback: (m: IMessage) => void;
+    activeSub?: StompSubscription;
+};
+const resubs = new Map<string, ResubRecord>();
+
+type PendingMsg = { destination: string; body: any; headers: Record<string, string> };
+const pendingQueue: PendingMsg[] = [];
+
+const rid = () => Math.random().toString(36).slice(2, 10);
+
+function buildWsUrl(token?: string) {
+    if (!token) return `${WS_BASE}${ENDPOINT}`;
+    return `${WS_BASE}${ENDPOINT}?token=${encodeURIComponent(token)}`;
 }
 
-function resolveBrokerUrl() {
-    const extra = (Constants?.expoConfig as any)?.extra || {};
-    const WS_BASE =
-        process.env.EXPO_PUBLIC_WS_BASE_URL ||
-        extra.WS_BASE_URL ||
-        "ws://10.0.2.2:8081";
+/** ===== 연결 ===== */
+export async function connectStomp(token?: string): Promise<void> {
+    if (client?.active) return;
+    if (connecting) { await connecting; return; }
 
-    let endpoint =
-        process.env.EXPO_PUBLIC_STOMP_ENDPOINT ||
-        extra.STOMP_ENDPOINT ||
-        "/ws/chat"; // 순수 WS 엔드포인트
-
-    // RN에서는 SockJS 엔드포인트 금지: 들어오면 강제 교체
-    if (endpoint.includes("/stomp/chat")) {
-        console.warn("[STOMP] '/stomp/chat'은 SockJS용입니다. RN에서는 '/ws/chat'로 강제 변경합니다.");
-        endpoint = "/ws/chat";
-    }
-
-    const url = `${WS_BASE}${endpoint}`;
-    console.log("[STOMP] brokerURL =", url, {
-        env_ws: process.env.EXPO_PUBLIC_WS_BASE_URL,
-        env_endpoint: process.env.EXPO_PUBLIC_STOMP_ENDPOINT,
-        extra,
-    });
-    return { url, hostHeader: parseHostFromWsBase(WS_BASE) };
-}
-
-export function getStompClient(token?: string) {
-    const { url: brokerURL, hostHeader } = resolveBrokerUrl();
-
-    if (client && client.active) return client;
+    const WS_URL = buildWsUrl(token);
+    console.log("[STOMP] connect to:", WS_URL);
 
     client = new Client({
-        // 연결 대상
-        brokerURL,
+        // RN에서는 factory로 직접 소켓 생성 (프로토콜 배열 필수!)
+        webSocketFactory: () =>
+            new WebSocket(WS_URL, ["v10.stomp", "v11.stomp", "v12.stomp"]),
 
-        // STOMP 버전 협상 (1.2 우선)
-        stompVersions: new Versions(["1.2", "1.1"]),
+        // STOMP CONNECT 헤더에도 Authorization 넣어 둔다
+        connectHeaders: token ? { Authorization: `Bearer ${token}` } : {},
 
-        // CONNECT 헤더
-        connectHeaders: {
-            host: hostHeader, // ★ 일부 환경 필수
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        // 하트비트/재연결
+        reconnectDelay: 5000,
+        heartbeatIncoming: 10000,
+        heartbeatOutgoing: 10000,
 
-        // ★ 핵심: RN WebSocket 생성 시 STOMP 서브프로토콜 명시 (멀티 프로토콜 제시)
-        webSocketFactory: () => new RNWebSocket(brokerURL, ["v12.stomp", "v11.stomp", "v10.stomp"]),
-
-        // RN 안정화 옵션
+        // **핵심**: NULL 바이트 보존을 위해 바이너리 프레임 사용
         forceBinaryWSFrames: true,
-        appendMissingNULLonIncoming: true,
+        splitLargeFrames: false,
 
-        // 디버그/재접속/하트비트
-        debug: (str) => console.log("[STOMP]", str),
-        reconnectDelay: 4000,
-
-        // 우선 하트비트 OFF로 연결만 확인 (성공 후 10000/10000으로 되돌리기)
-        heartbeatIncoming: 0,
-        heartbeatOutgoing: 0,
+        // 디버그 로그
+        debug: (s) => console.log("[STOMP]", s),
     });
 
-    client.onStompError = (frame) => {
-        console.log("[STOMP] Broker error:", frame.headers?.["message"]);
-        console.log("[STOMP] Details:", frame.body);
-    };
-    client.onWebSocketClose = (evt) => console.log("[STOMP] closed", evt?.reason);
-    client.onWebSocketError = (evt) => console.log("[STOMP] ws error", evt);
-    client.onUnhandledFrame = (frame) => console.log("[STOMP] unhandled frame", frame);
-    client.onUnhandledMessage = (msg) => console.log("[STOMP] unhandled message", msg);
-    client.onUnhandledReceipt = (receiptId) => console.log("[STOMP] unhandled receipt", receiptId);
+    connecting = new Promise<void>((resolve) => {
+        client!.onConnect = () => {
+            console.log("[STOMP] connected");
 
-    return client;
-}
+            // (재)구독 복구
+            for (const [id, rec] of resubs) {
+                try { rec.activeSub?.unsubscribe(); } catch {}
+                rec.activeSub = client!.subscribe(rec.destination, rec.callback);
+                console.log("[STOMP] resubscribed:", rec.destination, id);
+            }
 
-export type Unsubscribe = () => void;
+            // 대기중 발행 flush
+            while (pendingQueue.length) {
+                const p = pendingQueue.shift()!;
+                try {
+                    client!.publish({
+                        destination: p.destination,
+                        body: JSON.stringify(p.body),
+                        headers: p.headers,
+                    });
+                } catch (e) {
+                    console.warn("[STOMP] flush publish failed:", e);
+                    pendingQueue.unshift(p);
+                    break;
+                }
+            }
 
-export function subscribeTopic(topic: string, onMessage: (msg: IMessage) => void): Unsubscribe {
-    if (!client || !client.active) throw new Error("STOMP client not connected");
-    const sub = client.subscribe(topic, onMessage);
-    return () => sub.unsubscribe();
-}
-
-export function publish(destination: string, body: any, headers: Record<string, string> = {}) {
-    if (!client || !client.active) throw new Error("STOMP client not connected");
-    client.publish({
-        destination,
-        body: JSON.stringify(body),
-        headers: { "content-type": "application/json", ...headers },
-    });
-}
-
-export async function connectStomp(token?: string) {
-    const c = getStompClient(token);
-    if (c.active) return;
-
-    return new Promise<void>((resolve, reject) => {
-        c.onConnect = () => {
-            // 연결되면 하트비트 원복을 원하면 여기서 옵션 갱신 가능 (필요시)
-            // c.configure({ heartbeatIncoming: 10000, heartbeatOutgoing: 10000 });
             resolve();
         };
-        try {
-            c.activate();
-        } catch (e) {
-            reject(e);
-        }
+
+        client!.onStompError = (f) => {
+            console.error("[STOMP][BROKER ERROR]", f.headers?.["message"], f.body ?? "");
+        };
+
+        client!.onWebSocketClose = (e) => {
+            console.log("[STOMP] WS CLOSE:", e.code, e.reason ?? "");
+        };
+
+        client!.activate();
+
+        // 20s 보호 타임아웃
+        const watchdog = setTimeout(() => {
+            if (!client!.connected) {
+                console.log("[STOMP] Connection not established in 20000ms, closing socket");
+                try { client!.deactivate(); } catch {}
+            }
+        }, 20000);
+
+        const origOnConnect = client!.onConnect;
+        client!.onConnect = (frame) => {
+            clearTimeout(watchdog);
+            origOnConnect?.(frame);
+        };
     });
+
+    try { await connecting; } finally { connecting = null; }
 }
 
-export function disconnectStomp() {
-    if (client && client.active) {
-        client.deactivate();
+/** ===== 토픽 구독 ===== */
+export function subscribeTopic(destination: string, callback: (m: IMessage) => void): Unsubscribe {
+    const id = `${destination}::${rid()}`;
+    const rec: ResubRecord = { destination, callback };
+    resubs.set(id, rec);
+
+    if (client?.connected) {
+        rec.activeSub = client!.subscribe(destination, callback);
+        console.log("[STOMP] subscribed:", destination, id);
+    } else {
+        console.log("[STOMP] will subscribe after connect:", destination);
     }
+
+    return () => {
+        const r = resubs.get(id);
+        if (!r) return;
+        try { r.activeSub?.unsubscribe(); console.log("[STOMP] unsubscribed:", destination, id); } catch {}
+        resubs.delete(id);
+    };
+}
+
+/** ===== 발행 (연결 전이면 큐) ===== */
+export function publish(destination: string, body: any, headers: Record<string, string> = {}) {
+    if (client?.connected) {
+        client.publish({ destination, body: JSON.stringify(body), headers });
+        return;
+    }
+    pendingQueue.push({ destination, body, headers });
+    console.warn("[STOMP] queued (not connected):", destination);
+}
+
+/** ===== 종료 ===== */
+export async function disconnectStomp(): Promise<void> {
+    try { await client?.deactivate(); } catch {}
+    client = null;
+    connecting = null;
+    console.log("[STOMP] deactivated");
 }

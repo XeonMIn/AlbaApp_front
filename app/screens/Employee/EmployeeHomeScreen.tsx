@@ -37,10 +37,11 @@ export default function EmployeeHomeScreen({ navigation }: any) {
 
                 {/* 출퇴근 카드 */}
                 <View style={s.attendanceCard}>
-                    <TouchableOpacity style={{ alignItems: "center" }} onPress={() => alert("QR 출퇴근 기능 준비중")}>
+                    <TouchableOpacity style={{ alignItems: "center" }} onPress={() => navigation.navigate("QRScanner")}>
                         <Ionicons name="qr-code-outline" size={40} color="#007AFF" />
                         <Text style={s.subText}>QR 출퇴근</Text>
                     </TouchableOpacity>
+
 
                     <View style={s.verticalDivider}></View>
 

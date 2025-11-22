@@ -10,6 +10,9 @@ import ProfileScreen from "../screens/Employee/ProfileScreen";
 // ✅ 채팅은 스택 내비게이터(목록 → 방)로 교체
 import ChatNavigator from "./ChatNavigator";
 
+// ✅ 새로 추가될 업무 화면
+import EmployeeTasksScreen from "../screens/Employee/EmployeeTasksScreen";
+
 const Tab = createBottomTabNavigator();
 
 /**
@@ -37,6 +40,8 @@ export default function EmployeeTabNavigator() {
                         iconName = focused ? "home" : "home-outline";
                     } else if (route.name === "Schedule") {
                         iconName = focused ? "calendar" : "calendar-outline";
+                    } else if (route.name === "Tasks") {
+                        iconName = focused ? "checkmark-done" : "checkmark-done-outline";
                     } else if (route.name === "Chat") {
                         iconName = focused ? "chatbubble" : "chatbubble-outline";
                     } else if (route.name === "Profile") {
@@ -56,6 +61,12 @@ export default function EmployeeTabNavigator() {
                 name="Schedule"
                 component={ScheduleScreen}
                 options={{ tabBarLabel: "일정", title: "일정" }}
+            />
+            {/* ✅ 새 “업무” 탭 추가 */}
+            <Tab.Screen
+                name="Tasks"
+                component={EmployeeTasksScreen}
+                options={{ tabBarLabel: "업무", title: "업무" }}
             />
             {/* ✅ 채팅 탭을 ChatNavigator로 교체 */}
             <Tab.Screen

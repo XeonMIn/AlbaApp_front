@@ -11,6 +11,9 @@ import ProfileScreen from "../screens/Employee/ProfileScreen";
 // ✅ 채팅은 스택 내비게이터(목록 → 방)로 교체
 import ChatNavigator from "./ChatNavigator";
 
+// ✅ 새로 추가: 사장 업무 화면
+import OwnerTasksScreen from "../screens/Owner/OwnerTasksScreen";
+
 const Tab = createBottomTabNavigator();
 
 export default function OwnerTabNavigator() {
@@ -30,6 +33,7 @@ export default function OwnerTabNavigator() {
                     let iconName: keyof typeof Ionicons.glyphMap = "home";
                     if (route.name === "OwnerHome") iconName = focused ? "home" : "home-outline";
                     else if (route.name === "OwnerSchedule") iconName = focused ? "calendar" : "calendar-outline";
+                    else if (route.name === "OwnerTasks") iconName = focused ? "checkmark-done" : "checkmark-done-outline";
                     else if (route.name === "OwnerChat") iconName = focused ? "chatbubble" : "chatbubble-outline";
                     else if (route.name === "OwnerNotice") iconName = focused ? "megaphone" : "megaphone-outline";
                     else if (route.name === "Profile") iconName = focused ? "person" : "person-outline";
@@ -40,6 +44,8 @@ export default function OwnerTabNavigator() {
         >
             <Tab.Screen name="OwnerHome" component={OwnerHomeScreen} options={{ tabBarLabel: "홈" }} />
             <Tab.Screen name="OwnerSchedule" component={OwnerScheduleScreen} options={{ tabBarLabel: "일정" }} />
+            {/* ✅ 새 “업무” 탭 */}
+            <Tab.Screen name="OwnerTasks" component={OwnerTasksScreen} options={{ tabBarLabel: "업무" }} />
             {/* ✅ 채팅 탭을 ChatNavigator로 교체 */}
             <Tab.Screen name="OwnerChat" component={ChatNavigator} options={{ tabBarLabel: "채팅" }} />
             <Tab.Screen name="OwnerNotice" component={OwnerNoticeScreen} options={{ tabBarLabel: "공지" }} />

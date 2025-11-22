@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +7,14 @@ import { useIsFocused } from "@react-navigation/native";
 import type { RootState } from "@/store/store";
 import { getWorkplaceDetail, WorkplaceResponse } from "@/api/workplace.api";
 
+import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
+import { fetchAnnouncements, type AnnouncementDto } from "@/api/announcement.api";
+
+function parseDate(s?: string) {
+    if (!s) return 0;
+    return new Date(s.replace(" ", "T")).getTime() || 0;
+}
+
 export default function OwnerHomeScreen({ navigation }: any) {
     const user = useSelector((state: RootState) => state.user);
     const isFocused = useIsFocused();
@@ -14,7 +22,6 @@ export default function OwnerHomeScreen({ navigation }: any) {
     const [repWp, setRepWp] = useState<Pick<WorkplaceResponse, "name" | "address"> | null>(null);
     const [loadingRep, setLoadingRep] = useState(false);
 
-    // 대표 매장 이름/주소 로드 (화면 복귀/대표 변경 시 갱신)
     useEffect(() => {
         const fetchRep = async () => {
             if (!user.workplaceId) {
@@ -34,6 +41,36 @@ export default function OwnerHomeScreen({ navigation }: any) {
         fetchRep();
     }, [user.workplaceId, isFocused]);
 
+    // 📢 최근 공지 3개
+    const workplaceId: number | undefined = user.workplaceId ?? undefined;
+    const token: string | undefined = user.accessToken ?? undefined;
+
+    const [history, setHistory] = useState<AnnouncementDto[]>([]);
+    const { notices } = useNoticeTopic(workplaceId, token);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            if (!workplaceId) { setHistory([]); return; }
+            try {
+                const data = await fetchAnnouncements(workplaceId);
+                if (!cancelled) setHistory(data);
+            } catch {
+                setHistory([]);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [workplaceId, isFocused]);
+
+    const latest3 = useMemo(() => {
+        const map = new Map<number | string, AnnouncementDto>();
+        const key = (n: AnnouncementDto, i: number) => n.id ?? `${n.title}__${n.content}__${n.createdtime ?? ""}__${i}`;
+        [...notices, ...history].forEach((n, i) => map.set(key(n, i), n));
+        return Array.from(map.values())
+            .sort((a, b) => parseDate(b.createdtime) - parseDate(a.createdtime))
+            .slice(0, 3);
+    }, [notices, history]);
+
     return (
         <SafeAreaView style={s.container}>
             {/* 상단 헤더 */}
@@ -45,7 +82,7 @@ export default function OwnerHomeScreen({ navigation }: any) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* 매장 정보 (대표 매장 이름/주소 표시) */}
+                {/* 매장 정보 */}
                 <TouchableOpacity style={s.card} onPress={() => navigation.navigate("WorkplaceInfo")}>
                     <Text style={s.cardTitle}>📍 내 매장</Text>
                     <Text style={s.cardMain}>
@@ -54,7 +91,7 @@ export default function OwnerHomeScreen({ navigation }: any) {
                     <Text style={s.cardSub}>{loadingRep ? "" : repWp?.address ?? ""}</Text>
                 </TouchableOpacity>
 
-                {/* 요약 정보 (직원 수 / 출근 인원) */}
+                {/* 요약 정보 */}
                 <View style={s.row}>
                     <TouchableOpacity
                         style={[s.infoBox, { backgroundColor: "#007AFF" }]}
@@ -99,17 +136,25 @@ export default function OwnerHomeScreen({ navigation }: any) {
                     </TouchableOpacity>
                 </View>
 
-                {/* 공지사항 */}
+                {/* 📢 최근 공지사항 (최신 3개) */}
                 <View style={s.section}>
-                    <Text style={s.sectionTitle}>📢 최근 공지사항</Text>
-                    <TouchableOpacity style={s.noticeCard} onPress={() => navigation.navigate("OwnerNotice")}>
-                        <Ionicons name="alert-circle" size={18} color="red" />
-                        <Text style={s.noticeText}>이번 주 주말 휴무 안내</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={s.noticeCard} onPress={() => navigation.navigate("OwnerNotice")}>
-                        <Ionicons name="megaphone-outline" size={18} color="#007AFF" />
-                        <Text style={s.noticeText}>11월 유니폼 변경 공지</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text style={s.sectionTitle}>📢 최근 공지사항</Text>
+                        <TouchableOpacity onPress={() => navigation.navigate("OwnerNotice")}>
+                            <Text style={{ color: "#007AFF", fontWeight: "600" }}>전체 보기</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {latest3.length === 0 ? (
+                        <Text style={{ color: "#777" }}>등록된 공지가 없습니다.</Text>
+                    ) : (
+                        latest3.map((n, idx) => (
+                            <TouchableOpacity key={n.id ?? idx} style={s.noticeCard} onPress={() => navigation.navigate("OwnerNotice")}>
+                                <Ionicons name="megaphone-outline" size={18} color="#007AFF" />
+                                <Text style={s.noticeText} numberOfLines={1}>{n.title}</Text>
+                            </TouchableOpacity>
+                        ))
+                    )}
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -119,48 +164,26 @@ export default function OwnerHomeScreen({ navigation }: any) {
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#f8f9fb" },
     header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        backgroundColor: "#fff",
-        elevation: 3,
+        flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+        paddingHorizontal: 20, paddingVertical: 14, backgroundColor: "#fff", elevation: 3,
     },
     title: { fontSize: 22, fontWeight: "bold", color: "#111" },
 
     card: {
-        backgroundColor: "#fff",
-        margin: 16,
-        borderRadius: 16,
-        padding: 20,
-        elevation: 3,
+        backgroundColor: "#fff", margin: 16, borderRadius: 16, padding: 20, elevation: 3,
     },
     cardTitle: { fontSize: 16, color: "#666" },
     cardMain: { fontSize: 22, fontWeight: "bold", marginVertical: 6, color: "#111" },
     cardSub: { fontSize: 14, color: "#777" },
 
     row: { flexDirection: "row", justifyContent: "space-around", marginTop: 10 },
-    infoBox: {
-        flex: 1,
-        marginHorizontal: 8,
-        borderRadius: 16,
-        padding: 20,
-        alignItems: "center",
-    },
+    infoBox: { flex: 1, marginHorizontal: 8, borderRadius: 16, padding: 20, alignItems: "center" },
     infoLabel: { color: "#fff", marginTop: 6, fontSize: 14 },
     infoValue: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 
     payCard: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 16,
-        marginHorizontal: 16,
-        marginTop: 20,
-        elevation: 2,
+        flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+        backgroundColor: "#fff", borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 20, elevation: 2,
     },
     payTitle: { fontSize: 16, fontWeight: "bold", color: "#111", marginLeft: 8 },
 
@@ -171,26 +194,14 @@ const s = StyleSheet.create({
     cardSubText: { color: "#555", marginTop: 4, fontSize: 13 },
 
     noticeCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#fff",
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 8,
-        elevation: 1,
+        flexDirection: "row", alignItems: "center",
+        backgroundColor: "#fff", borderRadius: 10, padding: 10, marginBottom: 8, elevation: 1,
     },
     noticeText: { marginLeft: 8, color: "#333", fontSize: 13 },
 
     taskCard: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 16,
-        marginHorizontal: 16,
-        marginTop: 20,
-        elevation: 2,
+        flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+        backgroundColor: "#fff", borderRadius: 12, padding: 16, marginHorizontal: 16, marginTop: 20, elevation: 2,
     },
     taskTitle: { fontSize: 16, fontWeight: "bold", color: "#111", marginLeft: 8 },
 });

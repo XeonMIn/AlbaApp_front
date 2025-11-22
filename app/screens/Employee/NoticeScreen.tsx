@@ -1,25 +1,50 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
+import { fetchAnnouncements, AnnouncementDto } from "@/api/announcement.api";
+import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
+
+function parseDate(s?: string) {
+    if (!s) return 0;
+    return new Date(s.replace(" ", "T")).getTime() || 0;
+}
 
 export default function NoticeScreen({ navigation }: any) {
-    const notices = [
-        {
-            id: 1,
-            title: "이번 주 주말 휴무 안내",
-            content: "10월 19~20일은 매장 리모델링으로 휴무입니다.",
-            date: "2025-10-15",
-            important: true,
-        },
-        {
-            id: 2,
-            title: "유니폼 변경 안내",
-            content: "11월부터 새로운 유니폼 착용 예정입니다. 사이즈 신청 부탁드립니다.",
-            date: "2025-10-10",
-            important: false,
-        },
-    ];
+    const user = useSelector((s: RootState) => s.user);
+    const workplaceId: number | undefined = user.workplaceId ?? undefined;
+    const token: string | undefined = user.accessToken ?? undefined;
+
+    const [loading, setLoading] = useState(true);
+    const [history, setHistory] = useState<AnnouncementDto[]>([]);
+    const { notices } = useNoticeTopic(workplaceId, token);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            if (!workplaceId) { setLoading(false); return; }
+            setLoading(true);
+            try {
+                const data = await fetchAnnouncements(workplaceId);
+                if (!cancelled) setHistory(data);
+            } catch (e) {
+                console.warn("[NOTICE] history fetch error:", e);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [workplaceId]);
+
+    const merged = useMemo(() => {
+        const map = new Map<number | string, AnnouncementDto>();
+        // id가 있으면 id로, 없으면 fallback key
+        const k = (n: AnnouncementDto, i: number) => n.id ?? `${n.title}__${n.content}__${n.createdtime ?? ""}__${i}`;
+        [...notices, ...history].forEach((n, i) => map.set(k(n, i), n));
+        return Array.from(map.values()).sort((a, b) => parseDate(b.createdtime) - parseDate(a.createdtime));
+    }, [notices, history]);
 
     return (
         <SafeAreaView style={s.container}>
@@ -31,20 +56,26 @@ export default function NoticeScreen({ navigation }: any) {
                 <View style={{ width: 26 }} />
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-                {notices.map((notice) => (
-                    <TouchableOpacity key={notice.id} style={s.noticeCard}>
-                        <View style={s.cardHeader}>
-                            {notice.important && (
-                                <Ionicons name="alert-circle" size={18} color="red" style={{ marginRight: 6 }} />
-                            )}
-                            <Text style={s.noticeTitle}>{notice.title}</Text>
+            {loading ? (
+                <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <ActivityIndicator />
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={{ padding: 16 }}>
+                    {merged.length === 0 && (
+                        <Text style={{ textAlign: "center", color: "#666" }}>등록된 공지가 없습니다.</Text>
+                    )}
+                    {merged.map((n, idx) => (
+                        <View key={n.id ?? idx} style={s.noticeCard}>
+                            <View style={s.cardHeader}>
+                                <Text style={s.noticeTitle} numberOfLines={1}>{n.title}</Text>
+                                <Text style={s.dateText}>{n.createdtime?.slice(0, 16)}</Text>
+                            </View>
+                            <Text style={s.noticeContent}>{n.content}</Text>
                         </View>
-                        <Text style={s.noticeContent}>{notice.content}</Text>
-                        <Text style={s.noticeDate}>{notice.date}</Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+                    ))}
+                </ScrollView>
+            )}
         </SafeAreaView>
     );
 }
@@ -52,30 +83,17 @@ export default function NoticeScreen({ navigation }: any) {
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
     header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: "#eee",
-        backgroundColor: "#fff",
-        elevation: 2,
+        height: 56, paddingHorizontal: 16, flexDirection: "row",
+        alignItems: "center", justifyContent: "space-between",
+        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#ddd",
     },
-    title: { fontSize: 20, fontWeight: "bold", color: "#111" },
+    title: { fontSize: 18, fontWeight: "700", color: "#111" },
     noticeCard: {
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 12,
-        elevation: 2,
+        backgroundColor: "#fafafa", borderRadius: 12, padding: 14,
+        borderWidth: StyleSheet.hairlineWidth, borderColor: "#e3e3e3", marginBottom: 12,
     },
-    cardHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 6,
-    },
-    noticeTitle: { fontSize: 16, fontWeight: "bold", color: "#111" },
-    noticeContent: { fontSize: 14, color: "#555", marginBottom: 8 },
-    noticeDate: { fontSize: 12, color: "#888", textAlign: "right" },
+    cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+    noticeTitle: { fontSize: 16, fontWeight: "700", color: "#111", flex: 1, marginRight: 8 },
+    dateText: { fontSize: 12, color: "#888" },
+    noticeContent: { fontSize: 14, color: "#333", lineHeight: 20 },
 });

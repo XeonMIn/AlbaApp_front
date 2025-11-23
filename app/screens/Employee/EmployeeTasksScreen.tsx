@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { SafeAreaView } from "react-native-safe-area-context";
 // @ts-ignore
 import type { RootState } from "@/store";
-import { fetchMyTasks, completeTask, type TaskAssignmentDto } from "@/api/task";
+import { fetchMyTasks, completeTask, uncompleteTask, type TaskAssignmentDto } from "@/api/task";
 
 export default function EmployeeTasksScreen() {
     const user = useSelector((s: RootState) => s.user);
@@ -47,18 +47,28 @@ export default function EmployeeTasksScreen() {
         }
     };
 
+    const onUncomplete = async (assignmentId: number) => {
+        try {
+            await uncompleteTask(assignmentId, memberId!);
+            await load();
+        } catch (e: any) {
+            Alert.alert("오류", e?.message || "완료 취소 중 오류가 발생했습니다.");
+        }
+    };
+
     const renderItem = ({ item }: { item: TaskAssignmentDto }) => {
         const done = item.status === "DONE";
         const title = item.taskName || (item.taskId ? `업무 #${item.taskId}` : "업무");
-        const assignee = item.memberName || ""; // 자신 이름(백에서 내려준 값)
+        const assignee = item.memberName || "";
 
         return (
             <View style={[s.card, done && { opacity: 0.6 }]}>
                 <View style={s.row}>
-                    <Text style={s.title}>{title}</Text>
+                    <Text style={s.title} numberOfLines={1}>{title}</Text>
                     <Text style={[s.badge, done ? s.badgeDone : s.badgeAssigned]}>{done ? "완료" : "할당"}</Text>
                 </View>
                 <Text style={s.sub}>담당: {assignee || "(이름없음)"}</Text>
+
                 <View style={s.actions}>
                     {!done ? (
                         <TouchableOpacity style={s.btn} onPress={() => onComplete(item.id)}>
@@ -66,10 +76,17 @@ export default function EmployeeTasksScreen() {
                             <Text style={s.btnText}>완료</Text>
                         </TouchableOpacity>
                     ) : (
-                        <View style={s.donePill}>
-                            <Ionicons name="checkmark-done" size={16} color="#2ecc71" />
-                            <Text style={s.doneText}>완료됨</Text>
-                        </View>
+                        <>
+                            <View style={s.donePill}>
+                                <Ionicons name="checkmark-done" size={16} />
+                                <Text style={s.doneText}>완료됨</Text>
+                            </View>
+                            {/* ✅ 완료 취소 버튼 */}
+                            <TouchableOpacity style={[s.btn, s.secondary]} onPress={() => onUncomplete(item.id)}>
+                                <Ionicons name="close-circle-outline" size={18} color="#111" />
+                                <Text style={[s.btnText, { color: "#111" }]}>완료 취소</Text>
+                            </TouchableOpacity>
+                        </>
                     )}
                 </View>
             </View>
@@ -113,7 +130,7 @@ const s = StyleSheet.create({
     title: { fontSize: 16, fontWeight: "700", color: "#222" },
     sub: { marginTop: 6, color: "#555" },
     badge: {
-        paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: "hidden",
+        paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
         fontSize: 12, fontWeight: "700",
     },
     badgeAssigned: { backgroundColor: "#f0f0f0", color: "#444" },
@@ -121,6 +138,7 @@ const s = StyleSheet.create({
     actions: { marginTop: 10, flexDirection: "row", gap: 12, alignItems: "center" },
     btn: { flexDirection: "row", gap: 6, backgroundColor: "#111", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
     btnText: { color: "#fff", fontWeight: "600" },
-    donePill: { flexDirection: "row", alignItems: "center", gap: 6 },
+    donePill: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, backgroundColor: "#e8fbef" },
     doneText: { color: "#2ecc71", fontWeight: "700" },
+    secondary: { backgroundColor: "#eee" },
 });

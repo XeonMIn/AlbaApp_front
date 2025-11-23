@@ -119,7 +119,7 @@ export default function OwnerHomeScreen({ navigation }: any) {
                 </TouchableOpacity>
 
                 {/* 업무 관리 */}
-                <TouchableOpacity style={s.taskCard} activeOpacity={0.8} onPress={() => navigation.navigate("OwnerTask")}>
+                <TouchableOpacity style={s.taskCard} activeOpacity={0.8} onPress={() => navigation.navigate("OwnerTasks")}>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <Ionicons name="clipboard-outline" size={24} color="#007AFF" />
                         <Text style={s.taskTitle}>업무 관리</Text>

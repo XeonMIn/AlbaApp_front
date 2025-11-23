@@ -1,3 +1,4 @@
+// app/screens/Owner/OwnerTasksScreen.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, RefreshControl, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,7 +35,6 @@ const TaskItem: React.FC<{
         try {
             setSubmitting(true);
             await onAssignByEmploymentId(item.id, picked.employmentId);
-            // 배정이 끝나면 입력·버튼 모두 비활성화되므로 굳이 유지 안 해도 됨
         } catch (e: any) {
             const msg = e?.response?.data?.message || e?.message || "업무 배정에 실패했습니다.";
             Alert.alert("오류", msg);
@@ -52,21 +52,27 @@ const TaskItem: React.FC<{
 
     const assigned = item.assigned;
     const assignee = item.assigneeName ?? "";
+    const status: "ASSIGNED" | "DONE" | undefined = (item as any).status; // 백엔드/타입에 상태가 포함된 경우 표시
 
     return (
         <View style={s.card}>
-            {/* 상단: 제목 + 삭제 */}
+            {/* 상단: 이름만 표시(# 제거) + 상태 배지 + 삭제 */}
             <View style={s.row}>
+                <Text style={s.name} numberOfLines={1}>{item.name}</Text>
+
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={s.title}>#{item.id}</Text>
-                    <Text style={s.name}>{item.name}</Text>
+                    {assigned && (
+                        <Text style={[s.badge, status === "DONE" ? s.badgeDone : s.badgeAssigned]}>
+                            {status === "DONE" ? "완료" : "배정됨"}
+                        </Text>
+                    )}
+                    <TouchableOpacity style={s.iconBtn} onPress={confirmDelete}>
+                        <Ionicons name="trash-outline" size={18} color="#e53935" />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={s.iconBtn} onPress={confirmDelete}>
-                    <Ionicons name="trash-outline" size={18} color="#e53935" />
-                </TouchableOpacity>
             </View>
 
-            {/* 배정 상태 표시 */}
+            {/* 배정 상태 표시(미배정 안내) */}
             <View style={{ marginTop: 8 }}>
                 {assigned ? (
                     <Text style={s.assignedText}>
@@ -212,6 +218,7 @@ const s = StyleSheet.create({
         flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     },
     headerTitle: { fontSize: 20, fontWeight: "700", color: "#111" },
+
     form: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, flexDirection: "row" },
     input: {
         flex: 1, height: 42, borderWidth: 1, borderColor: "#ddd",
@@ -223,17 +230,24 @@ const s = StyleSheet.create({
         backgroundColor: "#111", paddingHorizontal: 12, borderRadius: 10, height: 42
     },
     btnText: { color: "#fff", fontWeight: "700" },
+
     empty: { textAlign: "center", color: "#999", marginTop: 20 },
     card: {
         backgroundColor: "#fafafa", borderRadius: 12, padding: 16, marginBottom: 12,
         borderWidth: 1, borderColor: "#eee",
     },
     row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-    title: { fontSize: 14, fontWeight: "700", color: "#999" },
-    name: { fontSize: 16, fontWeight: "700", color: "#222" },
+
+    // 제목(# 제거)
+    name: { fontSize: 16, fontWeight: "700", color: "#222", flexShrink: 1 },
+
     iconBtn: { padding: 6 },
 
     // 상태 표시
+    badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, fontSize: 12, fontWeight: "700" },
+    badgeAssigned: { backgroundColor: "#f0f0f0", color: "#444" },
+    badgeDone: { backgroundColor: "#e8fbef", color: "#2ecc71" },
+
     assignedText: { color: "#222", fontWeight: "600" },
     assignee: { color: "#007AFF" },
     pendingText: { color: "#888" },

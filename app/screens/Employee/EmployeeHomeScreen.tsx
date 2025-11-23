@@ -1,28 +1,55 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+// app/screens/Employee/EmployeeHomeScreen.tsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 
 import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
+import { useTaskStream } from "@/app/utils/useTaskStream";
 import { fetchAnnouncements, type AnnouncementDto } from "@/api/announcement.api";
+
+import {
+    fetchMyTasks,
+    completeTask,
+    uncompleteTask,
+    type TaskAssignmentDto,
+} from "@/api/task";
 
 function parseDate(s?: string) {
     if (!s) return 0;
     return new Date(s.replace(" ", "T")).getTime() || 0;
 }
 
+// ✅ 공통 정렬: 미완료 먼저, 그 다음 이름순
+function sortTasks(arr: TaskAssignmentDto[]) {
+    return [...arr].sort((a, b) => {
+        const sa = a.status === "DONE" ? 1 : 0;
+        const sb = b.status === "DONE" ? 1 : 0;
+        if (sa !== sb) return sa - sb;
+        return (a.taskName ?? "").localeCompare(b.taskName ?? "", "ko");
+    });
+}
+
 export default function EmployeeHomeScreen({ navigation }: any) {
     const user = useSelector((state: RootState) => state.user);
 
-    // 공지 최신 3개: 초기 이력 + 실시간 병합
     const workplaceId: number | undefined = user.workplaceId ?? undefined;
+    const memberId: number | undefined = user.id ?? undefined;
     const token: string | undefined = user.accessToken ?? undefined;
 
     const [history, setHistory] = useState<AnnouncementDto[]>([]);
     const { notices } = useNoticeTopic(workplaceId, token);
 
+    // ✅ 실시간 업무 이벤트
+    const { events } = useTaskStream(workplaceId, token);
+
+    // ✅ 내 업무 목록 상태
+    const [tasks, setTasks] = useState<TaskAssignmentDto[]>([]);
+    const [loadingTasks, setLoadingTasks] = useState(false);
+
+    // 공지 초기 로드
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -30,12 +57,63 @@ export default function EmployeeHomeScreen({ navigation }: any) {
             try {
                 const data = await fetchAnnouncements(workplaceId);
                 if (!cancelled) setHistory(data);
-            } catch {
-                setHistory([]);
-            }
+            } catch { setHistory([]); }
         })();
         return () => { cancelled = true; };
     }, [workplaceId]);
+
+    // ✅ 내 업무 로드
+    const loadTasks = useCallback(async () => {
+        if (!workplaceId || !memberId) return;
+        setLoadingTasks(true);
+        try {
+            const data = await fetchMyTasks(workplaceId, memberId);
+            setTasks(sortTasks(data ?? []));
+        } catch (e: any) {
+            console.warn(e);
+            Alert.alert("오류", e?.message || "업무 목록을 불러오지 못했습니다.");
+        } finally {
+            setLoadingTasks(false);
+        }
+    }, [workplaceId, memberId]);
+
+    useEffect(() => { loadTasks(); }, [loadTasks]);
+
+    // ✅ 실시간 이벤트 들어오면 즉시 새로고침
+    useEffect(() => {
+        if (!events.length) return;
+        loadTasks();
+    }, [events, loadTasks]);
+
+    // ✅ 완료/취소 토글 (낙관적 업데이트 + 즉시 재정렬) — 타입 안정화
+    const toggleTask = async (a: TaskAssignmentDto) => {
+        const wasDone = a.status === "DONE";
+        const nextStatus: TaskAssignmentDto["status"] = wasDone ? "ASSIGNED" : "DONE";
+        const rollbackStatus: TaskAssignmentDto["status"] = a.status;
+
+        // 1) 즉시 UI 반영 (타입을 명시적으로 유지)
+        setTasks(prev => {
+            const updated = prev.map<TaskAssignmentDto>(x =>
+                x.id === a.id ? { ...x, status: nextStatus } : x
+            );
+            return sortTasks(updated);
+        });
+
+        // 2) 서버 반영
+        try {
+            if (wasDone) await uncompleteTask(a.id, memberId!);
+            else await completeTask(a.id, memberId!);
+        } catch (e: any) {
+            // 3) 실패 시 되돌림 (타입 유지)
+            setTasks(prev => {
+                const reverted = prev.map<TaskAssignmentDto>(x =>
+                    x.id === a.id ? { ...x, status: rollbackStatus } : x
+                );
+                return sortTasks(reverted);
+            });
+            Alert.alert("오류", e?.message || "상태 변경 중 오류가 발생했습니다.");
+        }
+    };
 
     // 방송 우선으로 병합 후 최신 3개
     const latest3 = useMemo(() => {
@@ -72,9 +150,7 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                         <Ionicons name="qr-code-outline" size={40} color="#007AFF" />
                         <Text style={s.subText}>QR 출퇴근</Text>
                     </TouchableOpacity>
-
                     <View style={s.verticalDivider} />
-
                     <View style={{ alignItems: "center" }}>
                         <Ionicons name="walk-outline" size={40} color="green" />
                         <Text style={[s.subText, { color: "green" }]}>출근 완료</Text>
@@ -90,14 +166,45 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                     </TouchableOpacity>
                 </View>
 
-                {/* 업무 체크리스트 */}
+                {/* ✅ 오늘의 업무: 실시간 반영 + 토글 + 전체보기 이동 */}
                 <View style={s.section}>
-                    <Text style={s.sectionTitle}>✅ 오늘의 업무</Text>
-                    <TouchableOpacity style={s.taskCard} onPress={() => navigation.navigate("Task")}>
-                        <Text style={s.taskItem}>☑️ 매장 청소</Text>
-                        <Text style={s.taskItem}>☑️ 냉장고 정리</Text>
-                        <Text style={s.taskItem}>☐ 재고 확인</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text style={s.sectionTitle}>✅ 오늘의 업무</Text>
+                        {/* 👉 전체 보기 누르면 업무 화면("Task")으로 이동 */}
+                        <TouchableOpacity onPress={() => navigation.navigate("Tasks")}>
+                            <Text style={{ color: "#007AFF", fontWeight: "600" }}>전체 보기</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={s.taskCard}>
+                        {loadingTasks ? (
+                            <Text style={{ color: "#777" }}>불러오는 중…</Text>
+                        ) : tasks.length === 0 ? (
+                            <Text style={{ color: "#777" }}>배정된 업무가 없습니다.</Text>
+                        ) : (
+                            tasks.map((t) => {
+                                const done = t.status === "DONE";
+                                const title = t.taskName || (t.taskId ? `업무 #${t.taskId}` : "업무");
+                                return (
+                                    <TouchableOpacity
+                                        key={t.id}
+                                        style={s.taskRow}
+                                        onPress={() => toggleTask(t)}
+                                        activeOpacity={0.6}
+                                    >
+                                        <Ionicons
+                                            name={done ? "checkmark-circle" : "ellipse-outline"}
+                                            size={20}
+                                            color={done ? "#2ecc71" : "#999"}
+                                        />
+                                        <Text style={[s.taskItem, done && s.taskDone]} numberOfLines={1}>
+                                            {title}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })
+                        )}
+                    </View>
                 </View>
 
                 {/* 📢 최근 공지사항 (최신 3개) */}
@@ -151,8 +258,11 @@ const s = StyleSheet.create({
     cardText: { fontSize: 15, fontWeight: "600" },
     cardSub: { color: "#555", marginTop: 4, fontSize: 13 },
 
+    // 업무 카드
     taskCard: { backgroundColor: "#fff", borderRadius: 12, padding: 14, elevation: 2 },
-    taskItem: { fontSize: 14, marginBottom: 6 },
+    taskRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
+    taskItem: { fontSize: 14, flexShrink: 1 },
+    taskDone: { textDecorationLine: "line-through", color: "#999" },
 
     noticeCard: {
         flexDirection: "row", alignItems: "center",

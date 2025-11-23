@@ -17,6 +17,8 @@ import {
     type TaskAssignmentDto,
 } from "@/api/task";
 
+import { clockOutRequest } from "@/api/attendance.api"; // ✅ 퇴근 API
+
 function parseDate(s?: string) {
     if (!s) return 0;
     return new Date(s.replace(" ", "T")).getTime() || 0;
@@ -48,6 +50,8 @@ export default function EmployeeHomeScreen({ navigation }: any) {
     // ✅ 내 업무 목록 상태
     const [tasks, setTasks] = useState<TaskAssignmentDto[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
+
+    const [clockOutLoading, setClockOutLoading] = useState(false); // ✅ 퇴근 버튼 로딩 상태
 
     // 공지 초기 로드
     useEffect(() => {
@@ -85,13 +89,12 @@ export default function EmployeeHomeScreen({ navigation }: any) {
         loadTasks();
     }, [events, loadTasks]);
 
-    // ✅ 완료/취소 토글 (낙관적 업데이트 + 즉시 재정렬) — 타입 안정화
+    // ✅ 완료/취소 토글
     const toggleTask = async (a: TaskAssignmentDto) => {
         const wasDone = a.status === "DONE";
         const nextStatus: TaskAssignmentDto["status"] = wasDone ? "ASSIGNED" : "DONE";
         const rollbackStatus: TaskAssignmentDto["status"] = a.status;
 
-        // 1) 즉시 UI 반영 (타입을 명시적으로 유지)
         setTasks(prev => {
             const updated = prev.map<TaskAssignmentDto>(x =>
                 x.id === a.id ? { ...x, status: nextStatus } : x
@@ -99,12 +102,10 @@ export default function EmployeeHomeScreen({ navigation }: any) {
             return sortTasks(updated);
         });
 
-        // 2) 서버 반영
         try {
             if (wasDone) await uncompleteTask(a.id, memberId!);
             else await completeTask(a.id, memberId!);
         } catch (e: any) {
-            // 3) 실패 시 되돌림 (타입 유지)
             setTasks(prev => {
                 const reverted = prev.map<TaskAssignmentDto>(x =>
                     x.id === a.id ? { ...x, status: rollbackStatus } : x
@@ -112,6 +113,40 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                 return sortTasks(reverted);
             });
             Alert.alert("오류", e?.message || "상태 변경 중 오류가 발생했습니다.");
+        }
+    };
+
+    // ✅ 퇴근 버튼 핸들러
+    const handleClockOut = async () => {
+        if (clockOutLoading) return;
+
+        if (!workplaceId || !memberId) {
+            Alert.alert("오류", "근무 정보가 없습니다.\n다시 로그인해 주세요.");
+            return;
+        }
+
+        try {
+            setClockOutLoading(true);
+
+            // ✅ memberId, workplaceId 같이 보냄
+            const data = await clockOutRequest(memberId!, workplaceId!);
+
+            Alert.alert(
+                "퇴근 완료",
+                data?.message || "퇴근이 정상적으로 기록되었습니다."
+            );
+
+        } catch (e: any) {
+            console.log("퇴근 오류:", e);
+
+            const msg =
+                e?.response?.data?.message ||
+                e?.message ||
+                "퇴근 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
+
+            Alert.alert("퇴근 실패", msg);
+        } finally {
+            setClockOutLoading(false);
         }
     };
 
@@ -146,15 +181,37 @@ export default function EmployeeHomeScreen({ navigation }: any) {
 
                 {/* 출퇴근 카드 */}
                 <View style={s.attendanceCard}>
-                    <TouchableOpacity style={{ alignItems: "center" }} onPress={() => navigation.navigate("QRScanner")}>
+                    {/* QR 출근 */}
+                    <TouchableOpacity
+                        style={{ alignItems: "center" }}
+                        onPress={() => navigation.navigate("QRScanner")}
+                    >
                         <Ionicons name="qr-code-outline" size={40} color="#007AFF" />
-                        <Text style={s.subText}>QR 출퇴근</Text>
+                        <Text style={s.subText}>QR 출근</Text>
                     </TouchableOpacity>
+
                     <View style={s.verticalDivider} />
-                    <View style={{ alignItems: "center" }}>
-                        <Ionicons name="walk-outline" size={40} color="green" />
-                        <Text style={[s.subText, { color: "green" }]}>출근 완료</Text>
-                    </View>
+
+                    {/* 퇴근 버튼 */}
+                    <TouchableOpacity
+                        style={{ alignItems: "center" }}
+                        onPress={handleClockOut}
+                        disabled={clockOutLoading}
+                    >
+                        <Ionicons
+                            name="walk-outline"
+                            size={40}
+                            color={clockOutLoading ? "#999" : "green"}
+                        />
+                        <Text
+                            style={[
+                                s.subText,
+                                { color: clockOutLoading ? "#999" : "green" },
+                            ]}
+                        >
+                            {clockOutLoading ? "처리 중..." : "퇴근하기"}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* 오늘 일정 */}
@@ -170,7 +227,6 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                 <View style={s.section}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                         <Text style={s.sectionTitle}>✅ 오늘의 업무</Text>
-                        {/* 👉 전체 보기 누르면 업무 화면("Task")으로 이동 */}
                         <TouchableOpacity onPress={() => navigation.navigate("Tasks")}>
                             <Text style={{ color: "#007AFF", fontWeight: "600" }}>전체 보기</Text>
                         </TouchableOpacity>

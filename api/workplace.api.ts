@@ -8,6 +8,10 @@ export interface WorkplaceResponse {
     businesshour: string;
     contactphoneNumber: string;
     createdtime?: string;
+    /** ✅ 백엔드 DTO에 포함된 초대 코드 */
+    joinCode?: string;
+    /** 혹시 스네이크로 내려오는 경우 대비(백엔드 네이밍 전략 달라질 때) */
+    join_code?: string;
 }
 
 /** 매장 상세 */
@@ -42,12 +46,12 @@ export async function updateWorkplace(
     return (res.data ?? "ok") as string;
 }
 
-/** ✅ 대표 매장 전환 */
+/** 대표 매장 전환 */
 export async function selectMyWorkplace(workplaceId: number): Promise<void> {
     await API.post(`/member/select-workplace/${workplaceId}`);
 }
 
-/** ✅ 매장 삭제 */
+/** 매장 삭제 */
 export async function deleteWorkplace(workplaceId: number): Promise<void> {
     await API.delete(`/workplace/${workplaceId}`);
 }

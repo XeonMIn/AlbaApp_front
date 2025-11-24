@@ -21,8 +21,14 @@ import {
     deleteWorkplace,
     WorkplaceResponse,
 } from "@/api/workplace.api";
+import { getEmploymentCountByWorkplace } from "@/api/employment.api";
 import API from "@/api/axios";
 import { setUser } from "@/store/userSlice";
+
+/** ✅ joinCode(카멜) 또는 join_code(스네이크) 대응 */
+function pickJoinCode(w: Partial<WorkplaceResponse> & Record<string, any>): string {
+    return (w as any).joinCode ?? (w as any).join_code ?? "-";
+}
 
 export default function WorkplaceInfoScreen({ navigation }: any) {
     const dispatch = useDispatch();
@@ -56,8 +62,14 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
             ]);
 
             setWorkplace(detail);
-            setEmployeesCount(count);
             setOtherWorkplaces((mine || []).filter((w) => w.id !== workplaceId));
+
+            // ✅ 직원 수: 실패/널이면 Employment 목록 길이로 폴백
+            let c = typeof count === "number" && !Number.isNaN(count) ? count : null;
+            if (c === null) {
+                c = await getEmploymentCountByWorkplace(workplaceId);
+            }
+            setEmployeesCount(c);
         } catch (e) {
             console.log("매장 정보 조회 실패:", e);
             setError("매장 정보를 불러오지 못했습니다.");
@@ -70,7 +82,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
         if (isFocused) fetchAll();
     }, [isFocused, fetchAll]);
 
-    /** ✅ 대표 매장 전환 */
+    /** 대표 매장 전환 */
     const handleSelect = async (target: WorkplaceResponse) => {
         if (target.id === workplaceId) {
             Alert.alert("알림", "이미 대표로 선택된 매장입니다.");
@@ -110,7 +122,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
         }
     };
 
-    /** ✅ 매장 삭제 (확인 → 삭제 → Redux 동기화 → 재조회) */
+    /** 매장 삭제 (확인 → 삭제 → Redux 동기화 → 재조회) */
     const handleDelete = (target: WorkplaceResponse) => {
         Alert.alert(
             "삭제 확인",
@@ -146,8 +158,8 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
                                             workplaceName: hasWorkplace ? me.workplaceName : null,
                                         } as any)
                                     );
-                                } catch (e) {
-                                    // 무시 (화면 재조회로 커버)
+                                } catch {
+                                    // 무시 (아래 재조회로 커버)
                                 }
                             }
 
@@ -208,7 +220,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
                         <View style={s.iconBtnDisabled}>
                             <Ionicons name="checkmark-circle" size={22} color="#2ecc71" />
                         </View>
-                        <TouchableOpacity style={s.iconBtn} onPress={() => handleDelete(workplace)}>
+                        <TouchableOpacity style={s.iconBtn} onPress={() => handleDelete(workplace as any)}>
                             <Ionicons name="trash-outline" size={20} color="#ff3b30" />
                         </TouchableOpacity>
                     </View>
@@ -221,10 +233,12 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
                         <Text style={s.address}>{workplace.address}</Text>
 
                         <View style={s.divider} />
+                        {/* ✅ 초대 코드 표시 */}
+                        <Row label="초대 코드" value={pickJoinCode(workplace as any)} />
                         <Row label="사업자 번호" value={workplace.businessnumber} />
                         <Row label="영업 시간" value={workplace.businesshour} />
                         <Row label="매장 전화번호" value={workplace.contactphoneNumber} />
-                        {typeof employeesCount === "number" && <Row label="직원 수" value={`${employeesCount}명`} />}
+                        <Row label="직원 수" value={`${employeesCount ?? 0}명`} />
                     </TouchableOpacity>
                 </View>
 
@@ -234,7 +248,6 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
                         <Text style={s.sectionTitle}>내 다른 매장</Text>
                         {otherWorkplaces.map((w) => (
                             <View key={w.id} style={s.card}>
-                                {/* ✅ 우측 상단 아이콘바: 대표 전환 체크 + 휴지통(삭제) */}
                                 <View style={s.iconBar}>
                                     <TouchableOpacity style={s.iconBtn} onPress={() => handleSelect(w)}>
                                         <Ionicons name="checkmark-circle-outline" size={22} color="#007AFF" />
@@ -252,6 +265,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
                                     <Text style={s.address}>{w.address}</Text>
 
                                     <View style={s.divider} />
+                                    <Row label="초대 코드" value={pickJoinCode(w as any)} />
                                     <Row label="사업자 번호" value={w.businessnumber} />
                                     <Row label="영업 시간" value={w.businesshour} />
                                     <Row label="매장 전화번호" value={w.contactphoneNumber} />
@@ -316,7 +330,6 @@ const s = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
     },
 
-    /** 우측 상단 아이콘바 (체크 + 휴지통) */
     iconBar: {
         position: "absolute",
         right: 10,
@@ -330,13 +343,8 @@ const s = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.9)",
         alignItems: "center",
     },
-    iconBtn: {
-        padding: 2,
-    },
-    iconBtnDisabled: {
-        padding: 2,
-        opacity: 0.9,
-    },
+    iconBtn: { padding: 2 },
+    iconBtnDisabled: { padding: 2, opacity: 0.9 },
 
     storeName: { fontSize: 20, fontWeight: "700", marginBottom: 4, color: "#111" },
     address: { fontSize: 14, color: "#555" },
@@ -345,7 +353,13 @@ const s = StyleSheet.create({
     label: { color: "#777", fontSize: 13 },
     value: { color: "#111", fontSize: 15, fontWeight: "500" },
 
-    inlineLink: { marginTop: 16, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: "#eef3ff" },
+    inlineLink: {
+        marginTop: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+        backgroundColor: "#eef3ff",
+    },
     inlineLinkText: { color: "#2e6bff", fontWeight: "700" },
 
     sectionWrap: { marginTop: 8 },

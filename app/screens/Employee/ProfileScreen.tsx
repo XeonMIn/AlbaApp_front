@@ -16,6 +16,7 @@ export default function ProfileScreen({ navigation }: any) {
 
 
     const fetchProfile = async () => {
+
         if (!user.id || !user.accessToken) return;
 
         try {
@@ -34,10 +35,11 @@ export default function ProfileScreen({ navigation }: any) {
 
             dispatch(
                 setUser({
+
                     id: res.data.id,
                     userId: res.data.userId,
                     name: res.data.name,
-                    role: res.data.role?.toUpperCase(),
+                    role: String(res.data.role ?? "").toLowerCase(),
                     email: res.data.email,
                     phoneNumber: res.data.phoneNumber,
                     accessToken: user.accessToken,
@@ -88,8 +90,9 @@ export default function ProfileScreen({ navigation }: any) {
                             <Text style={s.userSub}>이메일: {profile.email}</Text>
                             <Text style={s.userSub}>전화번호: {profile.phoneNumber}</Text>
                             <Text style={s.userSub}>
-                                유형: {profile.role === "OWNER" ? "사장님" : "알바생"}
+                                유형: {profile.role?.toLowerCase() === "owner" ? "사장님" : "알바생"}
                             </Text>
+
                         </>
                     ) : (
                         <>

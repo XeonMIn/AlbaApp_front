@@ -67,34 +67,36 @@ export default function LoginScreen({ navigation }: any) {
             });
             const me = meRes.data;
 
-            const role = String(me.role ?? "").toUpperCase();
+// role 문자열 정규화 (가장 중요)
+            const role = String(me.role ?? "").toLowerCase();
             const hasWorkplace = me.workplaceId !== null && me.workplaceId !== undefined;
 
-            // 4) Redux 저장 (workplace 즉시 반영)
+// Redux 저장
             dispatch(
                 setUser({
                     id: me.id,
                     userId: me.userId,
                     name: me.name,
-                    role,
+                    role, // employee / owner 딱 두 값
                     email: me.email ?? null,
                     phoneNumber: me.phoneNumber ?? null,
                     accessToken: token,
                     workplaceId: hasWorkplace ? me.workplaceId : null,
                     workplaceName: hasWorkplace ? me.workplaceName : null,
-                } as any)
+                })
             );
 
-            // 5) 네비게이션 분기(RESET로 화면 스택 초기화)
-            if ((role === "ALBA" || role === "EMPLOYEE") && hasWorkplace) {
+// 네비게이션 분기
+            if (role === "employee" && hasWorkplace) {
                 navigation.reset({ index: 0, routes: [{ name: "EmployeeTabs" }] });
-            } else if (role === "ALBA" || role === "EMPLOYEE") {
+            } else if (role === "employee") {
                 navigation.reset({ index: 0, routes: [{ name: "EmployeeNoWorkplace" }] });
-            } else if (hasWorkplace) {
+            } else if (role === "owner" && hasWorkplace) {
                 navigation.reset({ index: 0, routes: [{ name: "OwnerTabs" }] });
             } else {
                 navigation.reset({ index: 0, routes: [{ name: "OwnerEmpty" }] });
             }
+
         } catch (err: any) {
             console.log("로그인 실패:", err?.response?.data || err?.message);
             Alert.alert("로그인 실패", err?.response?.data?.message || "아이디/비밀번호를 확인하세요.");

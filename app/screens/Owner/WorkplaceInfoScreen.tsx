@@ -64,7 +64,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
             setWorkplace(detail);
             setOtherWorkplaces((mine || []).filter((w) => w.id !== workplaceId));
 
-            // ✅ 직원 수: 실패/널이면 Employment 목록 길이로 폴백
+            // ✅ 직원 수: 실패/널이면 Employment(ALBA) 목록 길이로 폴백
             let c = typeof count === "number" && !Number.isNaN(count) ? count : null;
             if (c === null) {
                 c = await getEmploymentCountByWorkplace(workplaceId);
@@ -82,7 +82,7 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
         if (isFocused) fetchAll();
     }, [isFocused, fetchAll]);
 
-    /** 대표 매장 전환 */
+    /** ✅ 대표 매장 전환 */
     const handleSelect = async (target: WorkplaceResponse) => {
         if (target.id === workplaceId) {
             Alert.alert("알림", "이미 대표로 선택된 매장입니다.");
@@ -114,6 +114,10 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
 
             await fetchAll();
             Alert.alert("완료", `"${target.name}"을(를) 대표 매장으로 선택했습니다.`);
+
+            // ✅ 전환 직후 전체 네비게이션 리셋 → 모든 화면이 새 대표 매장으로 리마운트
+            const nextRoot = role === "ALBA" || role === "EMPLOYEE" ? "EmployeeTabs" : "OwnerTabs";
+            navigation.reset({ index: 0, routes: [{ name: nextRoot }] });
         } catch (e: any) {
             console.log("[Select] 대표 매장 전환 실패:", e?.response?.data || e.message);
             Alert.alert("실패", e?.response?.data?.message || "대표 매장 전환에 실패했습니다.");
@@ -158,6 +162,10 @@ export default function WorkplaceInfoScreen({ navigation }: any) {
                                             workplaceName: hasWorkplace ? me.workplaceName : null,
                                         } as any)
                                     );
+
+                                    // ✅ 대표 매장 삭제 시에도 전체 리셋 권장
+                                    const nextRoot = role === "ALBA" || role === "EMPLOYEE" ? "EmployeeTabs" : "OwnerTabs";
+                                    navigation.reset({ index: 0, routes: [{ name: nextRoot }] });
                                 } catch {
                                     // 무시 (아래 재조회로 커버)
                                 }

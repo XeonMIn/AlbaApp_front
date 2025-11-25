@@ -6,7 +6,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { useNavigation } from "@react-navigation/native";
-import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
 
 type RoomItem = {
     id: number | string;
@@ -20,11 +19,7 @@ export default function ChatRoomListScreen() {
     const workplaceId = user.workplaceId ?? 0;
     const workplaceName = user.workplaceName ?? "매장";
 
-    // ✅ 공지 구독(배너만 사용, 리스트 항목에는 공지 채널 제거)
-    const { notices } = useNoticeTopic(workplaceId, user.accessToken || undefined);
-    const latest = notices?.[0];
-
-    // ✅ 리스트에는 오직 "매장 단체방"만 노출
+    // 🟦 단체방만 노출
     const rooms: RoomItem[] = useMemo(
         () => [
             {
@@ -42,24 +37,8 @@ export default function ChatRoomListScreen() {
                 <Text style={s.title}>채팅</Text>
             </View>
 
-            {/* 최근 공지 배너 (요청 없으므로 유지) */}
-            <View style={s.noticeCard}>
-                <Ionicons name="megaphone-outline" size={18} color="#111" />
-                <View style={{ flex: 1 }}>
-                    <Text style={s.noticeTitle}>{latest?.title || "최근 공지"}</Text>
-                    <Text style={s.noticeContent} numberOfLines={1}>
-                        {latest?.content || "공지 채널에서 공지를 확인하세요."}
-                    </Text>
-                </View>
-                <TouchableOpacity
-                    onPress={() => nav.navigate("ChatRoom", { roomId: workplaceId, mode: "notice" as const })}
-                    style={s.noticeBtn}
-                >
-                    <Text style={s.noticeBtnText}>보기</Text>
-                </TouchableOpacity>
-            </View>
+            {/* 🟦 공지 패널 완전 제거 */}
 
-            {/* 채팅방 리스트 (단일 항목) */}
             <FlatList
                 data={rooms}
                 keyExtractor={(it) => String(it.id)}
@@ -69,7 +48,7 @@ export default function ChatRoomListScreen() {
                         onPress={() =>
                             nav.navigate("ChatRoom", {
                                 roomId: workplaceId,
-                                mode: "chat" as const, // ✅ 항상 채팅 모드
+                                mode: "chat", // 항상 채팅 모드
                             })
                         }
                     >
@@ -89,6 +68,7 @@ export default function ChatRoomListScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#f7f7f7" },
+
     header: {
         height: 48,
         justifyContent: "center",
@@ -99,24 +79,7 @@ const s = StyleSheet.create({
     },
     title: { fontSize: 18, fontWeight: "700", color: "#111" },
 
-    // 공지 배너
-    noticeCard: {
-        margin: 16,
-        padding: 12,
-        borderRadius: 12,
-        backgroundColor: "#fff",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "#eaeaea",
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-    },
-    noticeTitle: { fontSize: 12, color: "#555" },
-    noticeContent: { fontSize: 14, color: "#111", marginTop: 2 },
-    noticeBtn: { backgroundColor: "#007AFF", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-    noticeBtnText: { color: "#fff", fontWeight: "600" },
-
-    // 채팅방 아이템
+    // 단체방 리스트
     roomItem: {
         marginHorizontal: 16,
         marginVertical: 8,

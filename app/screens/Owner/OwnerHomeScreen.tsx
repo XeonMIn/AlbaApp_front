@@ -1,3 +1,4 @@
+// app/screens/Owner/OwnerHomeScreen.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +10,7 @@ import { getWorkplaceDetail, WorkplaceResponse } from "@/api/workplace.api";
 
 import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
 import { fetchAnnouncements, type AnnouncementDto } from "@/api/announcement.api";
+import { getEmploymentCountByWorkplace } from "@/api/employment.api"; // ✅ 직원 수 API
 
 function parseDate(s?: string) {
     if (!s) return 0;
@@ -21,6 +23,10 @@ export default function OwnerHomeScreen({ navigation }: any) {
 
     const [repWp, setRepWp] = useState<Pick<WorkplaceResponse, "name" | "address"> | null>(null);
     const [loadingRep, setLoadingRep] = useState(false);
+
+    // ✅ 직원 수 상태
+    const [empCount, setEmpCount] = useState<number>(0);
+    const [loadingEmpCount, setLoadingEmpCount] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchRep = async () => {
@@ -41,6 +47,29 @@ export default function OwnerHomeScreen({ navigation }: any) {
         fetchRep();
     }, [user.workplaceId, isFocused]);
 
+    // ✅ 직원 수 불러오기 (알바 전용 인원수)
+    useEffect(() => {
+        let canceled = false;
+        (async () => {
+            if (!user.workplaceId) {
+                setEmpCount(0);
+                return;
+            }
+            try {
+                setLoadingEmpCount(true);
+                const n = await getEmploymentCountByWorkplace(user.workplaceId);
+                if (!canceled) setEmpCount(n ?? 0);
+            } catch {
+                if (!canceled) setEmpCount(0);
+            } finally {
+                if (!canceled) setLoadingEmpCount(false);
+            }
+        })();
+        return () => {
+            canceled = true;
+        };
+    }, [user.workplaceId, isFocused]);
+
     // 📢 최근 공지 3개
     const workplaceId: number | undefined = user.workplaceId ?? undefined;
     const token: string | undefined = user.accessToken ?? undefined;
@@ -51,7 +80,10 @@ export default function OwnerHomeScreen({ navigation }: any) {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            if (!workplaceId) { setHistory([]); return; }
+            if (!workplaceId) {
+                setHistory([]);
+                return;
+            }
             try {
                 const data = await fetchAnnouncements(workplaceId);
                 if (!cancelled) setHistory(data);
@@ -59,12 +91,15 @@ export default function OwnerHomeScreen({ navigation }: any) {
                 setHistory([]);
             }
         })();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [workplaceId, isFocused]);
 
     const latest3 = useMemo(() => {
         const map = new Map<number | string, AnnouncementDto>();
-        const key = (n: AnnouncementDto, i: number) => n.id ?? `${n.title}__${n.content}__${n.createdtime ?? ""}__${i}`;
+        const key = (n: AnnouncementDto, i: number) =>
+            n.id ?? `${n.title}__${n.content}__${n.createdtime ?? ""}__${i}`;
         [...notices, ...history].forEach((n, i) => map.set(key(n, i), n));
         return Array.from(map.values())
             .sort((a, b) => parseDate(b.createdtime) - parseDate(a.createdtime))
@@ -99,12 +134,15 @@ export default function OwnerHomeScreen({ navigation }: any) {
                     >
                         <Ionicons name="people-outline" size={28} color="#fff" />
                         <Text style={s.infoLabel}>직원 수</Text>
-                        <Text style={s.infoValue}>3명</Text>
+                        <Text style={s.infoValue}>
+                            {loadingEmpCount ? "…" : `${empCount}명`}
+                        </Text>
                     </TouchableOpacity>
 
                     <View style={[s.infoBox, { backgroundColor: "#34C759" }]}>
                         <Ionicons name="checkmark-done-outline" size={28} color="#fff" />
                         <Text style={s.infoLabel}>출근 인원</Text>
+                        {/* TODO: 출근 인원은 출근 API 붙일 때 연동 */}
                         <Text style={s.infoValue}>2명</Text>
                     </View>
                 </View>
@@ -149,7 +187,11 @@ export default function OwnerHomeScreen({ navigation }: any) {
                         <Text style={{ color: "#777" }}>등록된 공지가 없습니다.</Text>
                     ) : (
                         latest3.map((n, idx) => (
-                            <TouchableOpacity key={n.id ?? idx} style={s.noticeCard} onPress={() => navigation.navigate("OwnerNotice")}>
+                            <TouchableOpacity
+                                key={n.id ?? idx}
+                                style={s.noticeCard}
+                                onPress={() => navigation.navigate("OwnerNotice")}
+                            >
                                 <Ionicons name="megaphone-outline" size={18} color="#007AFF" />
                                 <Text style={s.noticeText} numberOfLines={1}>{n.title}</Text>
                             </TouchableOpacity>

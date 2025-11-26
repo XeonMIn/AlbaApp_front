@@ -1,32 +1,53 @@
 // app/screens/Pay/PayListScreen.tsx
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+
+import React, { useState, useEffect } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useSelector } from "react-redux";
+import { RootState } from "@/store/store";
+
+import { getPayListByMember } from "@/api/pay.api";   // ★ 알바생 급여 리스트 API
+
 export default function PayListScreen({ navigation }: any) {
-    const [payList] = useState([
-        {
-            id: "1",
-            period: "2025년 10월",
-            totalHours: 42,
-            hourlyWage: 12000,
-            regularPay: 504000,
-            bonus: 8900,
-            finalPay: 512900,
-            status: "지급 예정",
-        },
-        {
-            id: "2",
-            period: "2025년 9월",
-            totalHours: 40,
-            hourlyWage: 12000,
-            regularPay: 480000,
-            bonus: 0,
-            finalPay: 480000,
-            status: "지급 완료",
-        },
-    ]);
+    // ★ Redux에서 로그인한 유저 정보 가져오기
+    const user = useSelector((state: RootState) => state.user);
+    const memberId = user.id;
+
+    const [payList, setPayList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // ★ API 호출
+    useEffect(() => {
+        load();
+    }, [memberId]);
+
+    const load = async () => {
+        try {
+            const data = await getPayListByMember(memberId!); // ★ 본인 급여만 조회
+            setPayList(data);
+        } catch (e) {
+            console.log("급여 목록 불러오기 오류:", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <SafeAreaView style={s.container}>
+                <ActivityIndicator size="large" style={{ marginTop: 30 }} />
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={s.container}>
@@ -41,24 +62,33 @@ export default function PayListScreen({ navigation }: any) {
 
             {/* 급여 리스트 */}
             <ScrollView contentContainerStyle={s.content}>
-                {payList.map((item) => (
-                    <TouchableOpacity
-                        key={item.id}
-                        style={s.card}
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate("PayDetail", { item })}
-                    >
-                        <Text style={s.period}>{item.period}</Text>
-                        <Text style={s.detail}>근무시간: {item.totalHours}시간</Text>
-                        <Text style={s.detail}>
-                            시급: ₩{item.hourlyWage.toLocaleString()}
-                        </Text>
-                        <Text style={s.finalPay}>
-                            총지급액: ₩{item.finalPay.toLocaleString()}
-                        </Text>
-                        <Text style={s.status}>{item.status}</Text>
-                    </TouchableOpacity>
-                ))}
+                {payList.length === 0 ? (
+                    <Text style={{ color: "#777", marginTop: 20, textAlign: "center" }}>
+                        급여 내역이 없습니다.
+                    </Text>
+                ) : (
+                    payList.map((item: any) => {
+                        return (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={s.card}
+                                activeOpacity={0.8}
+                                onPress={() => navigation.navigate("PayDetail", { payId: item.id })}
+                            >
+                                <Text style={s.period}>{item.period}</Text>
+                                <Text style={s.detail}>근무시간: {item.totalHours}시간</Text>
+                                <Text style={s.detail}>
+                                    시급: ₩{item.hourlyWage.toLocaleString()}
+                                </Text>
+                                <Text style={s.finalPay}>
+                                    총지급액: ₩{item.finalPay.toLocaleString()}
+                                </Text>
+                                <Text style={s.status}>{item.status}</Text>
+                            </TouchableOpacity>
+                        );
+                    })
+                )}
+
             </ScrollView>
         </SafeAreaView>
     );

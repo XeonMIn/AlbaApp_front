@@ -34,6 +34,8 @@ import QRScannerScreen from "../screens/Employee/QRScannerScreen";
 
 // 급여 관련 화면
 import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay";
+import PayEditScreen from "../screens/Pay/PayEditScreen";
+
 
 // ✅ 알바생 매장 미등록/코드입력 플로우 화면
 import NoWorkplaceScreen from "../screens/Employee/NoWorkplaceScreen";
@@ -89,6 +91,8 @@ export type RootStackParamList = {
     // 알바생 급여 관련
     PayList: undefined;
     PayDetail: { item: any };
+    PayEdit: { payId: number };
+
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -139,9 +143,11 @@ export default function RootNavigator() {
             <Stack.Screen name="WorkplaceInfo" component={WorkplaceInfoScreen} />
             <Stack.Screen name="OwnerTask" component={OwnerTaskScreen} />
 
+
             {/* 알바생 급여 관련 */}
             <Stack.Screen name="PayList" component={PayListScreen} />
             <Stack.Screen name="PayDetail" component={PayDetailScreen} />
+            <Stack.Screen name="PayEdit" component={PayEditScreen} />
 
 
         </Stack.Navigator>

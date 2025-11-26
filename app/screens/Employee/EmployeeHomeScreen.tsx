@@ -9,6 +9,8 @@ import type { RootState } from "@/store/store";
 import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
 import { useTaskStream } from "@/app/utils/useTaskStream";
 import { fetchAnnouncements, type AnnouncementDto } from "@/api/announcement.api";
+import { getLatestPay } from "@/api/pay.api";
+
 
 import {
     fetchMyTasks,
@@ -52,6 +54,8 @@ export default function EmployeeHomeScreen({ navigation }: any) {
     const [loadingTasks, setLoadingTasks] = useState(false);
 
     const [clockOutLoading, setClockOutLoading] = useState(false); // ✅ 퇴근 버튼 로딩 상태
+    const [latestPay, setLatestPay] = useState<any>(null);
+
 
     // 공지 초기 로드
     useEffect(() => {
@@ -82,6 +86,21 @@ export default function EmployeeHomeScreen({ navigation }: any) {
     }, [workplaceId, memberId]);
 
     useEffect(() => { loadTasks(); }, [loadTasks]);
+
+    // ★ 최신 급여 불러오기
+    useEffect(() => {
+        if (!memberId) return;
+
+        (async () => {
+            try {
+                const pay = await getLatestPay(memberId);
+                setLatestPay(pay);
+            } catch (e) {
+                console.log("급여 불러오기 실패:", e);
+            }
+        })();
+    }, [memberId]);
+
 
     // ✅ 실시간 이벤트 들어오면 즉시 새로고침
     useEffect(() => {
@@ -173,11 +192,26 @@ export default function EmployeeHomeScreen({ navigation }: any) {
             {/* 본문 */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* 급여 카드 */}
-                <TouchableOpacity style={s.salaryCard} activeOpacity={0.8} onPress={() => navigation.navigate("PayList")}>
+                <TouchableOpacity
+                    style={s.salaryCard}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate("PayList")}
+                >
                     <Text style={s.salaryLabel}>이번 달 예상 급여</Text>
-                    <Text style={s.salaryAmount}>₩ 512,900</Text>
-                    <Text style={s.salarySub}>근무 42시간 · 시급 ₩12,000</Text>
+
+                    <Text style={s.salaryAmount}>
+                        {latestPay
+                            ? `₩ ${latestPay.finalPay.toLocaleString()}`
+                            : "불러오는 중..."}
+                    </Text>
+
+                    <Text style={s.salarySub}>
+                        {latestPay
+                            ? `근무 ${latestPay.totalHours}시간 · 시급 ₩${latestPay.hourlyWage.toLocaleString()}`
+                            : ""}
+                    </Text>
                 </TouchableOpacity>
+
 
                 {/* 출퇴근 카드 */}
                 <View style={s.attendanceCard}>

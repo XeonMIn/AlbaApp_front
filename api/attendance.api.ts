@@ -1,5 +1,7 @@
 import API from "@/api/axios";
 
+/** ===== 기존 타입/함수 (보존) ===== */
+
 /** 오늘 미퇴근 인원 한 명의 정보 */
 export type CheckedInMemberDto = {
     memberId: number;
@@ -41,4 +43,24 @@ export async function clockOutRequest(
     const body = { memberId, workPlaceId: workplaceId }; // 서버 스펙과 정확히 일치
     const { data } = await API.post("/attendance/clock-out", body);
     return typeof data === "string" ? { message: data } : data;
+}
+
+/** ===== NEW: 전원 상태(오늘) ===== */
+
+export type TodayStatus = "ABSENT" | "CHECKED_IN" | "CHECKED_OUT";
+
+export type TodayStatusDto = {
+    memberId: number;
+    memberName: string;
+    status: TodayStatus;
+    checkInAt?: string | null;   // "HH:mm"
+    checkOutAt?: string | null;  // "HH:mm"
+};
+
+/** 오늘, 해당 매장 직원 전원의 상태를 가져온다 */
+export async function getTodayStatusList(workplaceId: number): Promise<TodayStatusDto[]> {
+    const { data } = await API.get("/attendance/today/status", {
+        params: { workplaceId },
+    });
+    return Array.isArray(data) ? data : [];
 }

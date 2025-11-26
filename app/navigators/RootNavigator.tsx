@@ -1,3 +1,4 @@
+// app/navigators/RootNavigator.tsx
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -30,6 +31,7 @@ import WorkplaceInfoScreen from "../screens/Owner/WorkplaceInfoScreen";
 import OwnerTaskScreen from "../screens/Owner/OwnerTaskScreen";
 import ProfileEditScreen from "../screens/Common/ProfileEditScreen";
 import QRScannerScreen from "../screens/Employee/QRScannerScreen";
+import CheckedInListScreen from "../screens/Owner/CheckedInListScreen";
 
 
 // 급여 관련 화면
@@ -43,6 +45,7 @@ import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 import OwnerEmptyWorkplaceScreen from "@/app/screens/Owner/OwnerEmptyWorkplaceScreen";
 import RegisterWorkplaceScreen from "@/app/screens/Owner/RegisterWorkplaceScreen";
 import WorkplaceEditScreen from "@/app/screens/Owner/WorkplaceEditScreen";
+
 
 // ----------------------------------------------------
 // 네비게이션 타입 정의
@@ -81,18 +84,17 @@ export type RootStackParamList = {
     WorkplaceEdit: undefined;
     ProfileEdit: undefined;
 
-
     // 사장님 전용 화면
     EmployeeManage: undefined;
     PayManage: undefined;
     WorkplaceInfo: undefined;
     OwnerTask: undefined;
+    CheckedInList: undefined;
 
     // 알바생 급여 관련
     PayList: undefined;
     PayDetail: { item: any };
     PayEdit: { payId: number };
-
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -102,8 +104,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // ----------------------------------------------------
 export default function RootNavigator() {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="AutoLogin">
-
+        <Stack.Navigator
+            screenOptions={{ headerShown: false }}
+            initialRouteName="AutoLogin"
+        >
             {/* 로그인 & 회원가입 */}
             <Stack.Screen name="AutoLogin" component={AutoLoginScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
@@ -133,22 +137,23 @@ export default function RootNavigator() {
             <Stack.Screen name="Task" component={TaskScreen} />
             <Stack.Screen name="Notice" component={NoticeScreen} />
             <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
-            <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ headerShown: false }} />
-
-
+            <Stack.Screen
+                name="QRScanner"
+                component={QRScannerScreen}
+                options={{ headerShown: false }}
+            />
 
             {/* 사장님 전용 */}
             <Stack.Screen name="EmployeeManage" component={EmployeeManageScreen} />
             <Stack.Screen name="PayManage" component={PayManageScreen} />
             <Stack.Screen name="WorkplaceInfo" component={WorkplaceInfoScreen} />
             <Stack.Screen name="OwnerTask" component={OwnerTaskScreen} />
+            <Stack.Screen name="CheckedInList" component={CheckedInListScreen} />
 
             {/* 알바생 급여 관련 */}
             <Stack.Screen name="PayList" component={PayListScreen} />
             <Stack.Screen name="PayDetail" component={PayDetailScreen} />
             <Stack.Screen name="PayEdit" component={PayEditScreen} />
-
-
         </Stack.Navigator>
     );
 }

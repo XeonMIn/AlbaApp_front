@@ -16,6 +16,8 @@ export type EmploymentSimple = {
     memberName: string;
 };
 
+export type EmploymentNameMap = Record<number, string>; // employmentId → memberName
+
 /** =========================
  *  1) 매장 조인 (기존 그대로 유지)
  * ========================= */
@@ -113,3 +115,24 @@ export async function isMyEmployment(workplaceId: number, employmentId?: number 
  *  화면 코드에서 import { fetchEmploymentsByWorkplace }를 그대로 써도 되도록 alias 제공
  * ========================= */
 export { fetchEmploymentsByWorkplace_New as fetchEmploymentsByWorkplace };
+
+/** =========================
+ *  7) (신규) 사장 화면용: Employment ID → 이름 맵
+ *      - 내부적으로 fetchEmploymentListSafe() 사용 (신규→기존 순 폴백)
+ *      - 실패해도 빈 맵 반환 (UI 안전)
+ * ========================= */
+export async function getEmploymentNameMapByWorkplace(workplaceId: number): Promise<EmploymentNameMap> {
+    try {
+        const list = await fetchEmploymentListSafe(workplaceId);
+        const map: EmploymentNameMap = {};
+        for (const it of list) {
+            if (typeof it?.employmentId === "number" && it?.memberName) {
+                map[it.employmentId] = String(it.memberName);
+            }
+        }
+        return map;
+    } catch (e) {
+        console.log("employment name map 조회 실패:", e);
+        return {};
+    }
+}

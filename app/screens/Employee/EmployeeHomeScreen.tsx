@@ -1,4 +1,3 @@
-// app/screens/Employee/EmployeeHomeScreen.tsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +16,7 @@ import {
     type TaskAssignmentDto,
 } from "@/api/task";
 
-import { clockOutRequest } from "@/api/attendance.api"; // ✅ 퇴근 API
+import { clockOutMe } from "@/api/attendance.api"; // ✅ 바뀐 부분: 안전한 퇴근 API
 
 function parseDate(s?: string) {
     if (!s) return 0;
@@ -116,29 +115,28 @@ export default function EmployeeHomeScreen({ navigation }: any) {
         }
     };
 
-    // ✅ 퇴근 버튼 핸들러
+    // ✅ 퇴근 버튼 핸들러 — workplaceId 없이 안전 처리
     const handleClockOut = async () => {
         if (clockOutLoading) return;
 
-        if (!workplaceId || !memberId) {
-            Alert.alert("오류", "근무 정보가 없습니다.\n다시 로그인해 주세요.");
+        if (!memberId) {
+            Alert.alert("오류", "회원 정보가 없습니다.\n다시 로그인해 주세요.");
             return;
         }
 
         try {
             setClockOutLoading(true);
 
-            // ✅ memberId, workplaceId 같이 보냄
-            const data = await clockOutRequest(memberId!, workplaceId!);
+            const data = await clockOutMe(); // ← 포인트: workplaceId 미전달
 
             Alert.alert(
                 "퇴근 완료",
                 data?.message || "퇴근이 정상적으로 기록되었습니다."
             );
 
-        } catch (e: any) {
-            console.log("퇴근 오류:", e);
+            // (선택) 퇴근 후 화면 갱신 필요시 여기서 처리
 
+        } catch (e: any) {
             const msg =
                 e?.response?.data?.message ||
                 e?.message ||
@@ -223,7 +221,7 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                     </TouchableOpacity>
                 </View>
 
-                {/* ✅ 오늘의 업무: 실시간 반영 + 토글 + 전체보기 이동 */}
+                {/* ✅ 오늘의 업무 */}
                 <View style={s.section}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                         <Text style={s.sectionTitle}>✅ 오늘의 업무</Text>

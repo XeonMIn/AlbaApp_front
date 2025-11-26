@@ -13,7 +13,6 @@ import FindPasswordResultScreen from "../Auth/FindPasswordResultScreen";
 import FindAccountScreen from "../Auth/FindAccountScreen";
 import AutoLoginScreen from "../Auth/AutoLoginScreen";
 
-
 // ----------------------------------------------------
 // 홈 (탭 네비게이터)
 // ----------------------------------------------------
@@ -31,7 +30,6 @@ import OwnerTaskScreen from "../screens/Owner/OwnerTaskScreen";
 import ProfileEditScreen from "../screens/Common/ProfileEditScreen";
 import QRScannerScreen from "../screens/Employee/QRScannerScreen";
 
-
 // 급여 관련 화면
 import { PayListScreen, PayDetailScreen, PayManageScreen } from "../screens/Pay";
 
@@ -41,6 +39,9 @@ import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 import OwnerEmptyWorkplaceScreen from "@/app/screens/Owner/OwnerEmptyWorkplaceScreen";
 import RegisterWorkplaceScreen from "@/app/screens/Owner/RegisterWorkplaceScreen";
 import WorkplaceEditScreen from "@/app/screens/Owner/WorkplaceEditScreen";
+
+// ✅ 오늘 출근 명단 화면 (새로 추가)
+import CheckedInListScreen from "../screens/Owner/CheckedInListScreen";
 
 // ----------------------------------------------------
 // 네비게이션 타입 정의
@@ -57,7 +58,6 @@ export type RootStackParamList = {
     FindAccount: undefined;
 
     // 홈 (탭 네비게이터)
-    // ⚠️ Root에선 컨테이너 이름을 그대로 사용(외부 코드 호환), 내부 탭의 홈 화면 이름만 바꿔서 중복 제거
     EmployeeTabs: undefined;
     OwnerTabs: undefined;
 
@@ -79,12 +79,14 @@ export type RootStackParamList = {
     WorkplaceEdit: undefined;
     ProfileEdit: undefined;
 
-
     // 사장님 전용 화면
     EmployeeManage: undefined;
     PayManage: undefined;
     WorkplaceInfo: undefined;
     OwnerTask: undefined;
+
+    // ✅ 오늘 출근 명단 (추가)
+    CheckedInList: undefined;
 
     // 알바생 급여 관련
     PayList: undefined;
@@ -131,19 +133,22 @@ export default function RootNavigator() {
             <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
             <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ headerShown: false }} />
 
-
-
             {/* 사장님 전용 */}
             <Stack.Screen name="EmployeeManage" component={EmployeeManageScreen} />
             <Stack.Screen name="PayManage" component={PayManageScreen} />
             <Stack.Screen name="WorkplaceInfo" component={WorkplaceInfoScreen} />
             <Stack.Screen name="OwnerTask" component={OwnerTaskScreen} />
 
+            {/* ✅ 오늘 출근 명단 (탭 외부 스택 화면으로 추가) */}
+            <Stack.Screen
+                name="CheckedInList"
+                component={CheckedInListScreen}
+                options={{ headerShown: true, title: "오늘 출근 명단" }}
+            />
+
             {/* 알바생 급여 관련 */}
             <Stack.Screen name="PayList" component={PayListScreen} />
             <Stack.Screen name="PayDetail" component={PayDetailScreen} />
-
-
         </Stack.Navigator>
     );
 }

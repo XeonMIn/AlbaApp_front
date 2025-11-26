@@ -83,17 +83,21 @@ export default function WorkplaceJoinScreen({ navigation }: any) {
                 <Text style={s.label}>매장 코드를 입력하세요</Text>
                 <TextInput
                     style={s.input}
-                    placeholder="ex)1234567"
+                    placeholder="ex) ABC12345"
                     value={code}
-                    onChangeText={setCode}
-                    keyboardType="number-pad"
+                    onChangeText={(v) => setCode(v.replace(/\s+/g, "").toUpperCase())} // 공백 제거 + 대문자
+                    keyboardType="default"     // ✅ 기본 키보드(문자+숫자)
+                    inputMode="text"           // ✅ Android 텍스트 키보드 유도
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={12}             // 필요시 조정
                     returnKeyType="done"
                     onSubmitEditing={submit}
                 />
                 <Pressable
-                    style={[s.submit, loading && { opacity: 0.6 }]}
+                    style={[s.submit, (loading || !code.trim()) && { opacity: 0.6 }]}
                     onPress={submit}
-                    disabled={loading}
+                    disabled={loading || !code.trim()}
                 >
                     <Text style={s.submitText}>
                         {loading ? "등록 중..." : "등록"}

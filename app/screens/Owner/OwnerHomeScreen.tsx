@@ -11,6 +11,7 @@ import { getWorkplaceDetail, WorkplaceResponse } from "@/api/workplace.api";
 import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
 import { fetchAnnouncements, type AnnouncementDto } from "@/api/announcement.api";
 import { getEmploymentCountByWorkplace } from "@/api/employment.api"; // ✅ 직원 수 API
+import { getTodayCheckedInCount } from "@/api/attendance.api";       // ✅ 출근 인원 API
 
 function parseDate(s?: string) {
     if (!s) return 0;
@@ -28,6 +29,11 @@ export default function OwnerHomeScreen({ navigation }: any) {
     const [empCount, setEmpCount] = useState<number>(0);
     const [loadingEmpCount, setLoadingEmpCount] = useState<boolean>(false);
 
+    // ✅ 출근 인원 상태
+    const [checkedInCount, setCheckedInCount] = useState<number>(0);
+    const [loadingCheckedIn, setLoadingCheckedIn] = useState<boolean>(false);
+
+    // 대표 매장 정보
     useEffect(() => {
         const fetchRep = async () => {
             if (!user.workplaceId) {
@@ -63,6 +69,29 @@ export default function OwnerHomeScreen({ navigation }: any) {
                 if (!canceled) setEmpCount(0);
             } finally {
                 if (!canceled) setLoadingEmpCount(false);
+            }
+        })();
+        return () => {
+            canceled = true;
+        };
+    }, [user.workplaceId, isFocused]);
+
+    // ✅ 출근 인원 불러오기 (오늘 미퇴근 인원)
+    useEffect(() => {
+        let canceled = false;
+        (async () => {
+            if (!user.workplaceId) {
+                setCheckedInCount(0);
+                return;
+            }
+            try {
+                setLoadingCheckedIn(true);
+                const c = await getTodayCheckedInCount(user.workplaceId);
+                if (!canceled) setCheckedInCount(c ?? 0);
+            } catch {
+                if (!canceled) setCheckedInCount(0);
+            } finally {
+                if (!canceled) setLoadingCheckedIn(false);
             }
         })();
         return () => {
@@ -139,12 +168,18 @@ export default function OwnerHomeScreen({ navigation }: any) {
                         </Text>
                     </TouchableOpacity>
 
-                    <View style={[s.infoBox, { backgroundColor: "#34C759" }]}>
+                    {/* ✅ 출근 인원: 누르면 오늘 출근 명단 화면으로 이동 */}
+                    <TouchableOpacity
+                        style={[s.infoBox, { backgroundColor: "#34C759" }]}
+                        onPress={() => navigation.navigate("CheckedInList")}
+                        disabled={!user.workplaceId}
+                    >
                         <Ionicons name="checkmark-done-outline" size={28} color="#fff" />
                         <Text style={s.infoLabel}>출근 인원</Text>
-                        {/* TODO: 출근 인원은 출근 API 붙일 때 연동 */}
-                        <Text style={s.infoValue}>2명</Text>
-                    </View>
+                        <Text style={s.infoValue}>
+                            {loadingCheckedIn ? "…" : `${checkedInCount}명`}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* 급여 관리 */}

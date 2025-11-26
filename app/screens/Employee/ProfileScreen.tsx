@@ -28,12 +28,8 @@ export default function ProfileScreen({ navigation }: any) {
         if (!user?.isLoggedIn || !user?.id) return;
         try {
             setLoading(true);
-
-            // 공용 API 인스턴스 사용 (LAN IP/토큰/타임아웃 전부 공통 처리)
             const data = await fetchProfileById(user.id);
             setProfile(data);
-
-            // Redux 최신화 (기존 workplace 정보 유지)
             dispatch(
                 setUser({
                     id: data.id,
@@ -49,11 +45,10 @@ export default function ProfileScreen({ navigation }: any) {
             );
         } catch (err: any) {
             console.error("프로필 조회 실패:", err?.message ?? err);
-            // 네트워크 오류 안내
             if (!err?.response) {
                 Alert.alert(
                     "프로필 조회 실패",
-                    "네트워크 오류가 발생했어요.\n(실기기라면 서버 LAN IP, 같은 Wi-Fi인지, 방화벽/휴대폰 데이터 등 확인)"
+                    "네트워크 오류가 발생했어요.\n(실기기라면 서버 LAN IP, 같은 Wi-Fi인지 확인)"
                 );
             }
         } finally {
@@ -61,7 +56,6 @@ export default function ProfileScreen({ navigation }: any) {
         }
     }, [dispatch, user?.id, user?.isLoggedIn, user?.accessToken, user?.workplaceId, user?.workplaceName]);
 
-    // 화면 포커스될 때마다 갱신
     useFocusEffect(
         useCallback(() => {
             load();
@@ -75,9 +69,9 @@ export default function ProfileScreen({ navigation }: any) {
 
     return (
         <SafeAreaView style={s.container}>
+            {/* 헤더: 톱니바퀴 제거 */}
             <View style={s.header}>
                 <Text style={s.title}>내 정보</Text>
-                <Ionicons name="settings-outline" size={22} color="#111" />
             </View>
 
             {/* 프로필 영역 */}
@@ -140,7 +134,6 @@ const s = StyleSheet.create({
 
     header: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 10,

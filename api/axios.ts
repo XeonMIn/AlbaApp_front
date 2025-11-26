@@ -10,7 +10,7 @@ import { logout } from "@/store/userSlice";
 const ENV_URL =
     process.env.EXPO_PUBLIC_API_BASE_URL ||
     ((Constants?.expoConfig?.extra as any)?.API_BASE_URL) ||
-    "http://192.168.120.193:8081";
+    "http://192.168.219.104:8081";
 
 const API = axios.create({
     baseURL: ENV_URL,

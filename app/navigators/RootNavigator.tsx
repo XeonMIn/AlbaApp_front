@@ -20,6 +20,7 @@ import AutoLoginScreen from "../Auth/AutoLoginScreen";
 // ----------------------------------------------------
 import EmployeeTabNavigator from "../navigators/EmployeeTabNavigator";
 import OwnerTabNavigator from "../navigators/OwnerTabNavigator";
+import PayDetailQuickScreen from "@/app/screens/Pay/PayDetailQuickScreen";
 
 // ----------------------------------------------------
 // 개별 화면 (공통 및 추가 기능)
@@ -45,6 +46,8 @@ import WorkplaceJoinScreen from "../screens/Employee/WorkplaceJoinScreen";
 import OwnerEmptyWorkplaceScreen from "@/app/screens/Owner/OwnerEmptyWorkplaceScreen";
 import RegisterWorkplaceScreen from "@/app/screens/Owner/RegisterWorkplaceScreen";
 import WorkplaceEditScreen from "@/app/screens/Owner/WorkplaceEditScreen";
+import OwnerPayrollManageScreen from "@/app/screens/Owner/OwnerPayrollManageScreen";
+import OwnerPayrollEditScreen from "@/app/screens/Owner/OwnerPayrollEditScreen";
 
 
 // ----------------------------------------------------
@@ -90,11 +93,12 @@ export type RootStackParamList = {
     WorkplaceInfo: undefined;
     OwnerTask: undefined;
     CheckedInList: undefined;
-
+    OwnerPayrollEdit : undefined;
     // 알바생 급여 관련
     PayList: undefined;
     PayDetail: { item: any };
     PayEdit: { payId: number };
+    PayDetailQuick: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -145,15 +149,22 @@ export default function RootNavigator() {
 
             {/* 사장님 전용 */}
             <Stack.Screen name="EmployeeManage" component={EmployeeManageScreen} />
-            <Stack.Screen name="PayManage" component={PayManageScreen} />
+            <Stack.Screen name="PayManage" component={OwnerPayrollManageScreen} />
             <Stack.Screen name="WorkplaceInfo" component={WorkplaceInfoScreen} />
             <Stack.Screen name="OwnerTask" component={OwnerTaskScreen} />
             <Stack.Screen name="CheckedInList" component={CheckedInListScreen} />
+            <Stack.Screen name="OwnerPayrollEdit" component={OwnerPayrollEditScreen} />
+
 
             {/* 알바생 급여 관련 */}
             <Stack.Screen name="PayList" component={PayListScreen} />
             <Stack.Screen name="PayDetail" component={PayDetailScreen} />
             <Stack.Screen name="PayEdit" component={PayEditScreen} />
+            <Stack.Screen
+                name="PayDetailQuick"
+                component={PayDetailQuickScreen}
+                options={{ title: "급여 상세" }}
+            />
         </Stack.Navigator>
     );
 }

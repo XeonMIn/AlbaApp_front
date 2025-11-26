@@ -8,8 +8,7 @@ import type { RootState } from "@/store/store";
 import { useNoticeTopic } from "@/app/utils/useNoticeTopic";
 import { useTaskStream } from "@/app/utils/useTaskStream";
 import { fetchAnnouncements, type AnnouncementDto } from "@/api/announcement.api";
-import { getLatestPay } from "@/api/pay.api";
-
+import { getLatestPay, type LatestPay } from "@/api/pay.api";
 
 import {
     fetchMyTasks,
@@ -18,14 +17,13 @@ import {
     type TaskAssignmentDto,
 } from "@/api/task";
 
-import { clockOutMe } from "@/api/attendance.api"; // ✅ 바뀐 부분: 안전한 퇴근 API
+import { clockOutMe } from "@/api/attendance.api";
 
 function parseDate(s?: string) {
     if (!s) return 0;
     return new Date(s.replace(" ", "T")).getTime() || 0;
 }
 
-// ✅ 공통 정렬: 미완료 먼저, 그 다음 이름순
 function sortTasks(arr: TaskAssignmentDto[]) {
     return [...arr].sort((a, b) => {
         const sa = a.status === "DONE" ? 1 : 0;
@@ -37,7 +35,6 @@ function sortTasks(arr: TaskAssignmentDto[]) {
 
 export default function EmployeeHomeScreen({ navigation }: any) {
     const user = useSelector((state: RootState) => state.user);
-
     const workplaceId: number | undefined = user.workplaceId ?? undefined;
     const memberId: number | undefined = user.id ?? undefined;
     const token: string | undefined = user.accessToken ?? undefined;
@@ -45,18 +42,15 @@ export default function EmployeeHomeScreen({ navigation }: any) {
     const [history, setHistory] = useState<AnnouncementDto[]>([]);
     const { notices } = useNoticeTopic(workplaceId, token);
 
-    // ✅ 실시간 업무 이벤트
     const { events } = useTaskStream(workplaceId, token);
 
-    // ✅ 내 업무 목록 상태
     const [tasks, setTasks] = useState<TaskAssignmentDto[]>([]);
     const [loadingTasks, setLoadingTasks] = useState(false);
 
-    const [clockOutLoading, setClockOutLoading] = useState(false); // ✅ 퇴근 버튼 로딩 상태
-    const [latestPay, setLatestPay] = useState<any>(null);
+    const [clockOutLoading, setClockOutLoading] = useState(false);
+    const [latestPay, setLatestPayState] = useState<LatestPay | null>(null);
+    const [payLoading, setPayLoading] = useState(false);
 
-
-    // 공지 초기 로드
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -69,7 +63,6 @@ export default function EmployeeHomeScreen({ navigation }: any) {
         return () => { cancelled = true; };
     }, [workplaceId]);
 
-    // ✅ 내 업무 로드
     const loadTasks = useCallback(async () => {
         if (!workplaceId || !memberId) return;
         setLoadingTasks(true);
@@ -86,88 +79,61 @@ export default function EmployeeHomeScreen({ navigation }: any) {
 
     useEffect(() => { loadTasks(); }, [loadTasks]);
 
-    // ★ 최신 급여 불러오기
     useEffect(() => {
         if (!memberId) return;
-
         (async () => {
             try {
-                const pay = await getLatestPay(memberId);
-                setLatestPay(pay);
+                setPayLoading(true);
+                const pay = await getLatestPay(memberId, workplaceId);
+                setLatestPayState(pay);
             } catch (e) {
                 console.log("급여 불러오기 실패:", e);
+                setLatestPayState(null);
+            } finally {
+                setPayLoading(false);
             }
         })();
-    }, [memberId]);
+    }, [memberId, workplaceId]);
 
-
-    // ✅ 실시간 이벤트 들어오면 즉시 새로고침
     useEffect(() => {
         if (!events.length) return;
         loadTasks();
     }, [events, loadTasks]);
 
-    // ✅ 완료/취소 토글
     const toggleTask = async (a: TaskAssignmentDto) => {
         const wasDone = a.status === "DONE";
         const nextStatus: TaskAssignmentDto["status"] = wasDone ? "ASSIGNED" : "DONE";
         const rollbackStatus: TaskAssignmentDto["status"] = a.status;
 
-        setTasks(prev => {
-            const updated = prev.map<TaskAssignmentDto>(x =>
-                x.id === a.id ? { ...x, status: nextStatus } : x
-            );
-            return sortTasks(updated);
-        });
+        setTasks(prev => sortTasks(prev.map(x => x.id === a.id ? { ...x, status: nextStatus } : x)));
 
         try {
             if (wasDone) await uncompleteTask(a.id, memberId!);
             else await completeTask(a.id, memberId!);
         } catch (e: any) {
-            setTasks(prev => {
-                const reverted = prev.map<TaskAssignmentDto>(x =>
-                    x.id === a.id ? { ...x, status: rollbackStatus } : x
-                );
-                return sortTasks(reverted);
-            });
+            setTasks(prev => sortTasks(prev.map(x => x.id === a.id ? { ...x, status: rollbackStatus } : x)));
             Alert.alert("오류", e?.message || "상태 변경 중 오류가 발생했습니다.");
         }
     };
 
-    // ✅ 퇴근 버튼 핸들러 — workplaceId 없이 안전 처리
     const handleClockOut = async () => {
         if (clockOutLoading) return;
-
         if (!memberId) {
             Alert.alert("오류", "회원 정보가 없습니다.\n다시 로그인해 주세요.");
             return;
         }
-
         try {
             setClockOutLoading(true);
-
-            const data = await clockOutMe(); // ← 포인트: workplaceId 미전달
-
-            Alert.alert(
-                "퇴근 완료",
-                data?.message || "퇴근이 정상적으로 기록되었습니다."
-            );
-
-            // (선택) 퇴근 후 화면 갱신 필요시 여기서 처리
-
+            const data = await clockOutMe();
+            Alert.alert("퇴근 완료", data?.message || "퇴근이 정상적으로 기록되었습니다.");
         } catch (e: any) {
-            const msg =
-                e?.response?.data?.message ||
-                e?.message ||
-                "퇴근 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
-
+            const msg = e?.response?.data?.message || e?.message || "퇴근 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.";
             Alert.alert("퇴근 실패", msg);
         } finally {
             setClockOutLoading(false);
         }
     };
 
-    // 방송 우선으로 병합 후 최신 3개
     const latest3 = useMemo(() => {
         const map = new Map<number | string, AnnouncementDto>();
         const key = (n: AnnouncementDto, i: number) => n.id ?? `${n.title}__${n.content}__${n.createdtime ?? ""}__${i}`;
@@ -177,9 +143,12 @@ export default function EmployeeHomeScreen({ navigation }: any) {
             .slice(0, 3);
     }, [notices, history]);
 
+    const payNet  = latestPay?.net ?? latestPay?.finalPay ?? 0;
+    const payHrs  = latestPay?.workHours ?? latestPay?.totalHours ?? 0;
+    const payWage = latestPay?.hourlyWage ?? latestPay?.wage ?? 0;
+
     return (
         <SafeAreaView style={s.container}>
-            {/* 상단 헤더 */}
             <View style={s.header}>
                 <Text style={s.name}>{user.name ? `${user.name}님` : "알바생님"}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Notice")}>
@@ -187,66 +156,39 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                 </TouchableOpacity>
             </View>
 
-            {/* 본문 */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-                {/* 급여 카드 */}
                 <TouchableOpacity
                     style={s.salaryCard}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate("PayList")}
+                    onPress={() => navigation.navigate("PayDetailQuick")}
                 >
-                    <Text style={s.salaryLabel}>이번 달 예상 급여</Text>
-
+                    <Text style={s.salaryLabel}>이번 달 예상 실지급액</Text>
                     <Text style={s.salaryAmount}>
-                        {latestPay
-                            ? `₩ ${latestPay.finalPay.toLocaleString()}`
-                            : "불러오는 중..."}
+                        {payLoading ? "불러오는 중..." : `₩ ${Number(payNet || 0).toLocaleString()}`}
                     </Text>
-
-                    <Text style={s.salarySub}>
-                        {latestPay
-                            ? `근무 ${latestPay.totalHours}시간 · 시급 ₩${latestPay.hourlyWage.toLocaleString()}`
-                            : ""}
-                    </Text>
+                    {!payLoading && (
+                        <Text style={s.salarySub}>
+                            근무 {Number(payHrs || 0)}시간 · 시급 ₩{Number(payWage || 0).toLocaleString()}
+                        </Text>
+                    )}
                 </TouchableOpacity>
 
-
-                {/* 출퇴근 카드 */}
                 <View style={s.attendanceCard}>
-                    {/* QR 출근 */}
-                    <TouchableOpacity
-                        style={{ alignItems: "center" }}
-                        onPress={() => navigation.navigate("QRScanner")}
-                    >
+                    <TouchableOpacity style={{ alignItems: "center" }} onPress={() => navigation.navigate("QRScanner")}>
                         <Ionicons name="qr-code-outline" size={40} color="#007AFF" />
                         <Text style={s.subText}>QR 출근</Text>
                     </TouchableOpacity>
 
                     <View style={s.verticalDivider} />
 
-                    {/* 퇴근 버튼 */}
-                    <TouchableOpacity
-                        style={{ alignItems: "center" }}
-                        onPress={handleClockOut}
-                        disabled={clockOutLoading}
-                    >
-                        <Ionicons
-                            name="walk-outline"
-                            size={40}
-                            color={clockOutLoading ? "#999" : "green"}
-                        />
-                        <Text
-                            style={[
-                                s.subText,
-                                { color: clockOutLoading ? "#999" : "green" },
-                            ]}
-                        >
+                    <TouchableOpacity style={{ alignItems: "center" }} onPress={handleClockOut} disabled={clockOutLoading}>
+                        <Ionicons name="walk-outline" size={40} color={clockOutLoading ? "#999" : "green"} />
+                        <Text style={[s.subText, { color: clockOutLoading ? "#999" : "green" }]}>
                             {clockOutLoading ? "처리 중..." : "퇴근하기"}
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* 오늘 일정 */}
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>📅 오늘 근무 일정</Text>
                     <TouchableOpacity style={s.card} onPress={() => navigation.navigate("Schedule")}>
@@ -255,7 +197,6 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                     </TouchableOpacity>
                 </View>
 
-                {/* ✅ 오늘의 업무 */}
                 <View style={s.section}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                         <Text style={s.sectionTitle}>✅ 오늘의 업무</Text>
@@ -295,7 +236,7 @@ export default function EmployeeHomeScreen({ navigation }: any) {
                     </View>
                 </View>
 
-                {/* 📢 최근 공지사항 (최신 3개) */}
+                {/* ✅ 여기가 오타였던 부분: style={s.section} 로 고정 */}
                 <View style={s.section}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                         <Text style={s.sectionTitle}>📢 최근 공지사항</Text>
@@ -346,7 +287,6 @@ const s = StyleSheet.create({
     cardText: { fontSize: 15, fontWeight: "600" },
     cardSub: { color: "#555", marginTop: 4, fontSize: 13 },
 
-    // 업무 카드
     taskCard: { backgroundColor: "#fff", borderRadius: 12, padding: 14, elevation: 2 },
     taskRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 },
     taskItem: { fontSize: 14, flexShrink: 1 },

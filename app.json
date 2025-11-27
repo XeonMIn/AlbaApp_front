@@ -3,8 +3,8 @@
     "name": "AlbaApp",
     "slug": "AlbaApp",
     "extra": {
-      "API_BASE_URL": "http://192.168.219.104:8081",
-      "WS_BASE_URL": "ws://192.168.219.104:8081",
+      "API_BASE_URL": "http://192.168.157.193:8081",
+      "WS_BASE_URL": "ws://192.168.157.193:8081",
       "STOMP_ENDPOINT": "/ws/chat"
     },
     "version": "1.0.0",

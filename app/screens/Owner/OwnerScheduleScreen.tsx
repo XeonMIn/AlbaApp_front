@@ -1,3 +1,4 @@
+// app/screens/Owner/OwnerScheduleScreen.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,7 +22,6 @@ export default function OwnerScheduleScreen() {
     const [emps, setEmps] = useState<EmploymentSimple[]>([]);
     const [selectedEmps, setSelectedEmps] = useState<number[]>([]);
 
-    // ✅ 직원 목록 로드: EmploymentMemberDto[] -> EmploymentSimple[] 매핑 + 사장(본인) 제외
     useEffect(() => {
         if (!workplaceId) return;
         fetchEmploymentsByWorkplace(workplaceId)
@@ -31,7 +31,6 @@ export default function OwnerScheduleScreen() {
                     memberId: x.memberId,
                     memberName: x.memberName,
                 }));
-                // 본인(사장) employment 제거 (오너 계정이 employment로 묶여 있는 경우 대비)
                 const onlyStaff = mapped.filter(e => e.memberId !== myMemberId);
                 setEmps(onlyStaff);
             })
@@ -95,7 +94,14 @@ export default function OwnerScheduleScreen() {
     };
 
     return (
-        <SafeAreaView style={s.container}>
+        <SafeAreaView style={s.container} edges={["top", "left", "right"]}>
+            {/* 가운데 제목 */}
+            <View style={s.header}>
+                <View style={{ width: 24 }} />
+                <Text style={s.headerTitle}>근무 일정 관리</Text>
+                <View style={{ width: 24 }} />
+            </View>
+
             <Calendar
                 onDayPress={(d)=>setSelected(d.dateString)}
                 markedDates={marks}
@@ -104,12 +110,12 @@ export default function OwnerScheduleScreen() {
                     setSelected(d);
                 }}
             />
+
             <View style={s.form}>
                 <Text style={s.date}>{selected}</Text>
 
-                {/* 여러 알바 선택 */}
                 <View style={{ marginTop: 8, marginBottom: 8 }}>
-                    <Text style={{ fontWeight: "600", marginBottom: 6 }}>알바 선택(복수 선택 필수):</Text>
+                    <Text style={{ fontWeight: "600", marginBottom: 6 }}>알바 선택(복수 선택 가능):</Text>
                     <View style={s.empRow}>
                         {emps.map(e => {
                             const active = selectedEmps.includes(e.id);
@@ -181,6 +187,13 @@ export default function OwnerScheduleScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
+    header: {
+        height: 48, paddingHorizontal: 16,
+        flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#eee",
+    },
+    headerTitle: { fontSize: 18, fontWeight: "800", color: "#111", textAlign: "center", flexGrow: 0 },
+
     form: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
     date: { fontSize: 16, fontWeight: "700" },
     row: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },

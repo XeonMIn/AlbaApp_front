@@ -1,3 +1,4 @@
+// app/screens/Employee/ScheduleScreen.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,7 +18,9 @@ export default function ScheduleScreen() {
     const [marks, setMarks] = useState<any>({});
     const [meEmp, setMeEmp] = useState<EmploymentMemberDto | null>(null);
 
-    useEffect(() => { if (workplaceId) fetchMyEmployment(workplaceId).then(setMeEmp).catch(()=>setMeEmp(null)); }, [workplaceId]);
+    useEffect(() => {
+        if (workplaceId) fetchMyEmployment(workplaceId).then(setMeEmp).catch(()=>setMeEmp(null));
+    }, [workplaceId]);
 
     const monthKey = dayjs(selected).format("YYYY-MM");
     useEffect(() => {
@@ -43,7 +46,14 @@ export default function ScheduleScreen() {
     }, [workplaceId, selected, meEmp?.employmentId]);
 
     return (
-        <SafeAreaView style={s.container}>
+        <SafeAreaView style={s.container} edges={["top", "left", "right"]}>
+            {/* 헤더: 가운데 제목 */}
+            <View style={s.header}>
+                <View style={{ width: 24 }} />
+                <Text style={s.headerTitle}>근무 일정</Text>
+                <View style={{ width: 24 }} />
+            </View>
+
             <Calendar
                 onDayPress={(d)=>setSelected(d.dateString)}
                 markedDates={marks}
@@ -52,12 +62,15 @@ export default function ScheduleScreen() {
                     setSelected(d);
                 }}
             />
+
             <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
                 <Text style={s.date}>{selected}</Text>
             </View>
+
             {!meEmp?.employmentId && (
                 <Text style={{ textAlign: "center", color: "#6B7280" }}>내 고용 정보를 찾을 수 없습니다.</Text>
             )}
+
             <FlatList
                 data={[...items].sort((a,b)=>a.startTime.localeCompare(b.startTime))}
                 keyExtractor={(it)=>String(it.id)}
@@ -75,8 +88,28 @@ export default function ScheduleScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
+
+    header: {
+        height: 48,
+        paddingHorizontal: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "#eee",
+    },
+    headerTitle: { fontSize: 18, fontWeight: "800", color: "#111", textAlign: "center" },
+
     date: { fontSize: 16, fontWeight: "600" },
-    item: { marginHorizontal: 16, marginBottom: 10, padding: 14, borderRadius: 10, borderWidth: 1, borderColor: "#E5E7EB", backgroundColor: "#F9FAFB" },
+    item: {
+        marginHorizontal: 16,
+        marginBottom: 10,
+        padding: 14,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        backgroundColor: "#F9FAFB",
+    },
     time: { fontSize: 16, fontWeight: "700" },
-    empty: { textAlign: "center", color: "#6B7280", marginTop: 12 }
+    empty: { textAlign: "center", color: "#6B7280", marginTop: 12 },
 });

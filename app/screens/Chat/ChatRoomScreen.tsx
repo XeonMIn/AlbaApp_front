@@ -12,50 +12,34 @@ import { RouteProp, useRoute } from "@react-navigation/native";
 import { useStompRoom } from "@/app/utils/useStompRoom";
 import api from "@/api/axios";
 
-type ParamList = {
-    ChatRoom: { roomId: number | string; mode: "chat" | "notice" };
-};
+type ParamList = { ChatRoom: { roomId: number | string; mode: "chat" | "notice" } };
 
 type ChatMsgUI = {
     roomId?: string | number;
     sender?: string;
     content?: string;
-    sentAt?: number;      // epoch millis
-    _localId?: string;    // 낙관적 메시지면 존재
+    sentAt?: number;
+    _localId?: string;
 };
 
 const fmtClock = (ms: number) =>
-    new Intl.DateTimeFormat("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-    }).format(ms);
+    new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(ms);
 
 export default function ChatRoomScreen() {
     const { params } = useRoute<RouteProp<ParamList, "ChatRoom">>();
     const user = useSelector((s: RootState) => s.user);
 
-    const roomId = useMemo(
-        () => params?.roomId ?? user.workplaceId ?? 1,
-        [params?.roomId, user.workplaceId]
-    );
+    const roomId = useMemo(() => params?.roomId ?? user.workplaceId ?? 1, [params?.roomId, user.workplaceId]);
     const mode = params?.mode || "chat";
-    const sender = useMemo(
-        () => user.name || user.userId || "anonymous",
-        [user.name, user.userId]
-    );
+    const sender = useMemo(() => user.name || user.userId || "anonymous", [user.name, user.userId]);
 
     const { connected, messages, loadingHistory, sendMessage } = useStompRoom({
-        roomId,
-        sender,
-        token: user.accessToken,
+        roomId, sender, token: user.accessToken,
     });
 
     const [text, setText] = useState("");
 
-    /** ---------- 윈도우(호스트) 시계 동기화 ---------- */
-        // serverOffset = (백엔드 시각[=윈도우] - 현재 JS 시각)
+    // 호스트(백엔드) 시계 동기화
     const [serverOffset, setServerOffset] = useState(0);
     const [hostNow, setHostNow] = useState(() => Date.now());
 
@@ -63,29 +47,25 @@ export default function ChatRoomScreen() {
         let alive = true;
         (async () => {
             try {
-                // 백엔드가 윈도우에서 돌기 때문에 이 헤더가 곧 네 PC 시계야.
                 const res = await api.get("/member/me");
-                const hdr = (res.headers?.date ||
-                    res.headers?.Date ||
-                    res.headers?.DATE) as string | undefined;
+                const hdr = (res.headers?.date || res.headers?.Date || res.headers?.DATE) as string | undefined;
                 const serverMs = hdr ? Date.parse(hdr) : Date.now();
                 if (!alive) return;
                 setServerOffset(serverMs - Date.now());
             } catch {
                 if (!alive) return;
-                setServerOffset(0); // 실패 시 로컬(에뮬레이터)로 fallback
+                setServerOffset(0);
             }
         })();
         return () => { alive = false; };
     }, [user.accessToken]);
 
-    // 1초마다 윈도우 시각 갱신
     useEffect(() => {
         const id = setInterval(() => setHostNow(Date.now() + serverOffset), 1000);
         return () => clearInterval(id);
     }, [serverOffset]);
 
-    /** ---------- 자동 스크롤 ---------- */
+    // 자동 스크롤
     const listRef = useRef<FlatList<ChatMsgUI>>(null);
     useEffect(() => {
         const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 40);
@@ -101,16 +81,10 @@ export default function ChatRoomScreen() {
     };
 
     return (
-        <SafeAreaView style={s.container}>
-            {/* 상단 헤더 */}
-            <View style={s.header}>
-                <View>
-                    <Text style={s.title}>
-                        {mode === "notice" ? `공지 채널 #${roomId}` : `채팅방 #${roomId}`}
-                    </Text>
-                    {/* 윈도우(호스트) 현재 시각 */}
-                    <Text style={s.nowClock}>현재시각 {fmtClock(hostNow)} (호스트 기준)</Text>
-                </View>
+        <SafeAreaView style={s.container} edges={["top", "left", "right"]}>
+            {/* 더 얇아진 상단 바 */}
+            <View style={s.topBar}>
+                <Text style={s.nowClock}>현재시각 {fmtClock(hostNow)} (호스트 기준)</Text>
                 <View style={s.statusWrap}>
                     <View style={[s.dot, { backgroundColor: connected ? "#34C759" : "#FF3B30" }]} />
                     <Text style={s.status}>
@@ -123,31 +97,18 @@ export default function ChatRoomScreen() {
             <FlatList
                 ref={listRef}
                 data={messages as unknown as ChatMsgUI[]}
-                keyExtractor={(item, idx) =>
-                    item._localId ?? `${item.roomId}-${item.sender}-${item.sentAt}-${idx}`
-                }
+                keyExtractor={(item, idx) => item._localId ?? `${item.roomId}-${item.sender}-${item.sentAt}-${idx}`}
                 renderItem={({ item }) => {
-                    const mine =
-                        (item.sender ?? "").trim().toLowerCase() === sender.trim().toLowerCase();
-
-                    // ⏰ 표시 시간: 서버가 찍어준 sentAt(=윈도우) 그대로.
-                    // 낙관적 메시지는 sentAt + serverOffset 으로 '윈도우 시계'에 보정.
+                    const mine = (item.sender ?? "").trim().toLowerCase() === sender.trim().toLowerCase();
                     const base = typeof item.sentAt === "number" ? item.sentAt : Date.now();
                     const shownMs = item._localId ? base + serverOffset : base;
                     const timeLabel = fmtClock(shownMs);
 
                     return (
-                        <View
-                            style={[
-                                s.msgRow,
-                                mine ? { justifyContent: "flex-end" } : { justifyContent: "flex-start" },
-                            ]}
-                        >
+                        <View style={[s.msgRow, mine ? { justifyContent: "flex-end" } : { justifyContent: "flex-start" }]}>
                             {!mine && (
                                 <View style={s.peerBadge}>
-                                    <Text style={s.peerBadgeText}>
-                                        {item.sender?.slice(0, 2) || "상대"}
-                                    </Text>
+                                    <Text style={s.peerBadgeText}>{item.sender?.slice(0, 2) || "상대"}</Text>
                                 </View>
                             )}
                             <View style={[s.bubble, mine ? s.my : s.other]}>
@@ -170,13 +131,7 @@ export default function ChatRoomScreen() {
                 <View style={s.inputRow}>
                     <TextInput
                         style={[s.input, mode === "notice" && { backgroundColor: "#eee" }]}
-                        placeholder={
-                            mode === "notice"
-                                ? "공지 채널은 읽기 전용입니다"
-                                : connected
-                                    ? "메시지를 입력하세요"
-                                    : "연결 중..."
-                        }
+                        placeholder={mode === "notice" ? "공지 채널은 읽기 전용입니다" : connected ? "메시지를 입력하세요" : "연결 중..."}
                         value={text}
                         onChangeText={setText}
                         editable={connected && mode !== "notice"}
@@ -184,10 +139,7 @@ export default function ChatRoomScreen() {
                         returnKeyType="send"
                     />
                     <TouchableOpacity
-                        style={[
-                            s.sendBtn,
-                            (mode === "notice" || !connected || !text.trim()) && { opacity: 0.5 },
-                        ]}
+                        style={[s.sendBtn, (mode === "notice" || !connected || !text.trim()) && { opacity: 0.5 }]}
                         onPress={onSend}
                         disabled={mode === "notice" || !connected || !text.trim()}
                     >
@@ -201,17 +153,23 @@ export default function ChatRoomScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff" },
-    header: {
-        paddingHorizontal: 16, paddingVertical: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#e8e8e8",
-        flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+
+    // ⬇️ 상단 네모칸 더 작게
+    topBar: {
+        height: 36,                 // 44 → 36로 더 낮춤
+        paddingHorizontal: 12,      // 16 → 12
+        paddingVertical: 4,         // 6 → 4 (위로 더 붙음)
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "#e8e8e8",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
-    title: { fontSize: 18, fontWeight: "700" },
-    nowClock: { marginTop: 4, fontSize: 12, color: "#8a8a8a" },
+    nowClock: { fontSize: 12, color: "#6b6b6b", fontWeight: "600" }, // 13 → 12
 
     statusWrap: { flexDirection: "row", alignItems: "center", gap: 6 },
-    dot: { width: 8, height: 8, borderRadius: 4 },
-    status: { fontSize: 12, color: "#666" },
+    dot: { width: 6, height: 6, borderRadius: 3 },                   // 8 → 6
+    status: { fontSize: 11, color: "#666" },                          // 12 → 11
 
     msgRow: { flexDirection: "row", alignItems: "flex-end", marginVertical: 6, paddingHorizontal: 8 },
     peerBadge: {
